@@ -23,52 +23,67 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer base {
   :root {
-    --background: #f8f9fa;
-    --foreground: #212529;
+    /* Botanical Sage & Terracotta Palette */
+    --background: #f8f6f0;           /* Warm Natural Linen */
+    --foreground: #233129;           /* Deep Forest Charcoal */
     --card: #ffffff;
-    --card-foreground: #212529;
+    --card-foreground: #233129;
     --popover: #ffffff;
-    --popover-foreground: #212529;
-    --primary: #f97316; /* Orange */
+    --popover-foreground: #233129;
+    
+    --primary: #25523b;              /* Botanical Forest Sage */
     --primary-foreground: #ffffff;
-    --secondary: #e9ecef; /* Light Grey */
-    --secondary-foreground: #212529;
-    --muted: #f1f3f5;
-    --muted-foreground: #6c757d;
-    --accent: #f97316;
+    
+    --secondary: #e6ede8;            /* Herbal Mist / Light Sage */
+    --secondary-foreground: #1c3d2b;
+    
+    --muted: #edf2ee;
+    --muted-foreground: #5d6e64;     /* Muted Earth Moss */
+    
+    --accent: #c97a52;               /* Warm Terracotta Clay */
     --accent-foreground: #ffffff;
-    --destructive: #dc3545;
+    
+    --destructive: #b91c1c;
     --destructive-foreground: #ffffff;
-    --border: #dee2e6;
-    --input: #dee2e6;
-    --ring: #f97316;
-    --radius: 0.5rem;
+    
+    --border: #dfded7;               /* Soft Linen Border */
+    --input: #deddd5;
+    --ring: #25523b;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: #212529;
-    --foreground: #f8f9fa;
-    --card: #343a40;
-    --card-foreground: #f8f9fa;
-    --popover: #343a40;
-    --popover-foreground: #f8f9fa;
-    --primary: #f97316;
+    --background: #141c17;           /* Midnight Forest */
+    --foreground: #f0f4f1;
+    --card: #1c2721;
+    --card-foreground: #f0f4f1;
+    --popover: #1c2721;
+    --popover-foreground: #f0f4f1;
+    
+    --primary: #4a8264;              /* Lighter Sage */
     --primary-foreground: #ffffff;
-    --secondary: #495057;
-    --secondary-foreground: #f8f9fa;
-    --muted: #495057;
-    --muted-foreground: #ced4da;
-    --accent: #f97316;
+    
+    --secondary: #25382e;
+    --secondary-foreground: #e6ede8;
+    
+    --muted: #223329;
+    --muted-foreground: #9eb1a6;
+    
+    --accent: #d88962;               /* Terracotta Glow */
     --accent-foreground: #ffffff;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #f8f9fa;
-    --border: #495057;
-    --input: #495057;
-    --ring: #f97316;
+    
+    --destructive: #991b1b;
+    --destructive-foreground: #ffffff;
+    
+    --border: #2c3f34;
+    --input: #2c3f34;
+    --ring: #4a8264;
   }
 }
 
@@ -79,6 +94,10 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .font-serif {
+    font-family: var(--font-serif);
   }
 }
