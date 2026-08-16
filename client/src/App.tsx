@@ -6,6 +6,7 @@ import Booking from './pages/Booking'
 import Shop from './pages/Shop'
 import Blog from './pages/Blog'
 import AdminDashboard from './pages/admin/Dashboard'
+import PromoPopup from './components/PromoPopup'
 import './index.css'
 
 function Navbar() {
@@ -170,6 +171,7 @@ function ClientLayout() {
         <Outlet />
       </main>
       <Footer />
+      <PromoPopup />
     </div>
   )
 }

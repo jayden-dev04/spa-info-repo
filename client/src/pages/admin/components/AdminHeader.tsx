@@ -16,6 +16,10 @@ export default function AdminHeader({ currentTab, onRefresh, loading }: AdminHea
         return { title: 'Quản Lý Lịch Hẹn Dưỡng Sinh', subtitle: 'Theo dõi, duyệt lịch và điều phối khách hàng' }
       case 'orders':
         return { title: 'Quản Lý Đơn Hàng Mỹ Phẩm', subtitle: 'Danh sách đơn đặt mua từ website' }
+      case 'blog':
+        return { title: 'Quản Lý Bài Viết & Blog SEO', subtitle: 'Soạn thảo bài viết chuẩn SEO Google & Mạng xã hội' }
+      case 'popup':
+        return { title: 'Quản Lý Popup Giới Thiệu & Ưu Đãi', subtitle: 'Tùy biến banner nổi và chương trình khuyến mãi cho khách truy cập website' }
       case 'services':
         return { title: 'Bảng Giá & Gói Dịch Vụ', subtitle: 'Quản lý thông tin và thời lượng liệu trình' }
       case 'staff':

@@ -6,9 +6,11 @@ import {
   Sparkles, 
   Users2, 
   Leaf, 
-  ChevronRight,
-  ExternalLink,
-  ShieldCheck
+  ChevronRight, 
+  ExternalLink, 
+  ShieldCheck,
+  BookOpen,
+  Megaphone
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -43,6 +45,16 @@ export default function AdminSidebar({
       icon: ShoppingBag,
       badge: ordersCount > 0 ? ordersCount : null,
       badgeColor: 'bg-emerald-600 text-white',
+    },
+    {
+      id: 'blog',
+      label: 'Bài viết & Blog SEO',
+      icon: BookOpen,
+    },
+    {
+      id: 'popup',
+      label: 'Popup & Khuyến Mãi',
+      icon: Megaphone,
     },
     {
       id: 'services',

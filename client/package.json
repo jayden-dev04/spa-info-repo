@@ -10,10 +10,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@power-seo/content-analysis": "^1.0.19",
     "@radix-ui/react-label": "^2.1.15",
     "@radix-ui/react-slot": "^1.3.3",
     "@supabase/supabase-js": "^2.112.2",
     "@tailwindcss/vite": "^4.3.3",
+    "@tiptap/extension-image": "^3.30.1",
+    "@tiptap/extension-link": "^3.30.1",
+    "@tiptap/extension-table": "^3.30.1",
+    "@tiptap/extension-table-cell": "^3.30.1",
+    "@tiptap/extension-table-header": "^3.30.1",
+    "@tiptap/extension-table-row": "^3.30.1",
+    "@tiptap/extension-text-align": "^3.30.1",
+    "@tiptap/extension-underline": "^3.30.1",
+    "@tiptap/pm": "^3.30.1",
+    "@tiptap/react": "^3.30.1",
+    "@tiptap/starter-kit": "^3.30.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",
@@ -24,7 +36,8 @@
     "react-router-dom": "^7.18.2",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "yoastseo": "^3.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

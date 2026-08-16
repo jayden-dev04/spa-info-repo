@@ -7,6 +7,8 @@ import AdminHeader from './components/AdminHeader'
 import OverviewTab from './components/OverviewTab'
 import AppointmentsTab from './components/AppointmentsTab'
 import OrdersTab from './components/OrdersTab'
+import BlogTab from './components/BlogTab'
+import PopupTab from './components/PopupTab'
 import ServicesTab from './components/ServicesTab'
 import StaffTab from './components/StaffTab'
 
@@ -44,24 +46,21 @@ export default function AdminDashboard() {
       if (orderError) console.error("Lỗi tải đơn hàng:", orderError)
       if (orderData) setOrders(orderData)
 
-      // 3. Compute stats
-      const aptList = aptData || []
-      const ordList = orderData || []
-
-      const pending = aptList.filter(a => (a.status || 'pending') === 'pending').length
-      const confirmed = aptList.filter(a => a.status === 'confirmed').length
-      const revenue = ordList.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)
+      // 3. Stats calculation
+      const pendingApts = aptData?.filter(a => a.status === 'pending').length || 0
+      const confirmedApts = aptData?.filter(a => a.status === 'confirmed').length || 0
+      const revenue = orderData?.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0) || 0
 
       setStats({
-        appointments: aptList.length,
-        orders: ordList.length,
-        pendingAppointments: pending,
-        confirmedAppointments: confirmed,
+        appointments: aptData?.length || 0,
+        orders: orderData?.length || 0,
+        pendingAppointments: pendingApts,
+        confirmedAppointments: confirmedApts,
         totalRevenue: revenue,
       })
-    } catch (err: any) {
+    } catch (err) {
       console.error("Lỗi kết nối Supabase:", err)
-      toast.error("Lỗi tải dữ liệu", { description: "Không thể kết nối đến máy chủ." })
+      toast.error("Không thể kết nối cơ sở dữ liệu Supabase")
     } finally {
       setLoading(false)
     }
@@ -71,12 +70,12 @@ export default function AdminDashboard() {
     fetchData()
   }, [fetchData])
 
-  // Update appointment status
-  const handleUpdateAppointmentStatus = async (id: string, newStatus: string) => {
+  // Real-time status update for Appointment
+  const handleUpdateAppointmentStatus = async (id: string | number, newStatus: string) => {
+    // Optimistic Update
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a))
+    
     try {
-      // Optimistic update
-      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a))
-
       const { error } = await supabase
         .from('appointments')
         .update({ status: newStatus })
@@ -84,26 +83,22 @@ export default function AdminDashboard() {
 
       if (error) throw error
 
-      const statusLabels: Record<string, string> = {
-        confirmed: 'Đã xác nhận lịch hẹn',
-        completed: 'Đã hoàn tất lịch hẹn',
-        cancelled: 'Đã hủy lịch hẹn',
-        pending: 'Đã chuyển về chờ duyệt'
-      }
-
-      toast.success(statusLabels[newStatus] || "Cập nhật thành công")
+      toast.success(`Cập nhật lịch hẹn #${id} thành công!`, {
+        description: `Trạng thái mới: ${newStatus === 'confirmed' ? 'Đã duyệt' : newStatus === 'completed' ? 'Hoàn tất' : 'Đã hủy'}`
+      })
       fetchData()
     } catch (err: any) {
-      toast.error("Lỗi cập nhật", { description: err.message })
+      toast.error("Lỗi cập nhật lịch hẹn", { description: err.message })
       fetchData()
     }
   }
 
-  // Update order status
-  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
-    try {
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o))
+  // Real-time status update for Order
+  const handleUpdateOrderStatus = async (id: string | number, newStatus: string) => {
+    // Optimistic Update
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o))
 
+    try {
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -111,7 +106,9 @@ export default function AdminDashboard() {
 
       if (error) throw error
 
-      toast.success("Đã cập nhật trạng thái đơn hàng")
+      toast.success(`Cập nhật đơn hàng #${id} thành công!`, {
+        description: `Trạng thái mới: ${newStatus === 'shipped' ? 'Đang giao hàng' : 'Đã giao thành công'}`
+      })
       fetchData()
     } catch (err: any) {
       toast.error("Lỗi cập nhật đơn hàng", { description: err.message })
@@ -163,6 +160,10 @@ export default function AdminDashboard() {
               onUpdateOrderStatus={handleUpdateOrderStatus}
             />
           )}
+
+          {currentTab === 'blog' && <BlogTab />}
+
+          {currentTab === 'popup' && <PopupTab />}
 
           {currentTab === 'services' && <ServicesTab />}
 
