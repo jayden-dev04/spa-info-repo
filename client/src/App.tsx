@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, NavLink, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { Leaf, Phone, MapPin, Clock, Sparkles, Heart } from 'lucide-react'
 import Home from './pages/Home'
@@ -162,23 +162,34 @@ function Footer() {
   )
 }
 
+function ClientLayout() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">
+      <Navbar />
+      <main className="flex-grow">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col bg-background text-foreground font-sans">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/booking" element={<Booking />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Routes>
-        </main>
-        <Footer />
-        <Toaster richColors />
-      </div>
+      <Routes>
+        {/* Public Client Routes (with Navbar & Footer) */}
+        <Route element={<ClientLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/blog" element={<Blog />} />
+        </Route>
+
+        {/* Standalone Admin Route (Completely separate full-screen layout) */}
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+      <Toaster richColors />
     </BrowserRouter>
   )
 }

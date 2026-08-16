@@ -63,21 +63,25 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center text-center text-white overflow-hidden bg-primary/95">
-        {/* Background Image with botanical overlay */}
+      <section className="relative min-h-[85vh] flex items-center justify-center text-center text-white overflow-hidden bg-primary">
+        {/* Background Image with rich botanical overlay */}
         <div className="absolute inset-0 z-0">
-          <img src={heroImg} alt="Eva Spa Hero" className="w-full h-full object-cover brightness-[0.42] scale-105 transition-transform duration-1000" />
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/70 via-primary/30 to-background"></div>
+          <img 
+            src={heroImg} 
+            alt="Eva Spa Hero" 
+            className="w-full h-full object-cover brightness-[0.4] scale-105 transition-transform duration-1000" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-primary/75 to-primary/95"></div>
         </div>
 
         <div className="container mx-auto px-4 py-20 relative z-10 max-w-4xl">
           {/* Botanical Badge */}
-          <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-white text-xs md:text-sm font-medium tracking-wide mb-6">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/25 px-4 py-1.5 rounded-full text-white text-xs md:text-sm font-medium tracking-wide mb-6 shadow-sm">
             <Leaf className="w-4 h-4 text-accent" />
             <span>100% Thảo Mộc Tự Nhiên & Dưỡng Sinh Trị Liệu</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 tracking-tight leading-tight drop-shadow-md">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold mb-6 tracking-tight leading-tight drop-shadow-md text-white">
             Thanh Lọc Thân Tâm, <br className="hidden sm:inline" />
             Đánh Thức Vẻ Đẹp Thuần Khiết
           </h1>
@@ -95,33 +99,47 @@ export default function Home() {
               </Button>
             </Link>
             <Link to="/shop" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/70 text-white hover:bg-white/15 backdrop-blur-xs px-8 py-6 rounded-xl transition-all text-base">
+              <Button 
+                size="lg" 
+                variant="ghost" 
+                className="w-full sm:w-auto bg-white/10 hover:bg-white text-white hover:text-primary border border-white/40 hover:border-white backdrop-blur-md px-8 py-6 rounded-xl font-semibold transition-all text-base shadow-sm hover:shadow-xl hover:-translate-y-0.5"
+              >
                 Khám Phá Sản Phẩm
               </Button>
             </Link>
           </div>
 
-          {/* Stats Badges */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-16 pt-8 border-t border-white/15 text-white/90">
-            <div className="flex items-center justify-center gap-2">
-              <Star className="w-5 h-5 text-accent fill-accent" />
-              <div className="text-left">
-                <p className="font-bold text-base leading-none">4.9 / 5.0</p>
-                <p className="text-xs text-stone-300">Đánh giá hài lòng</p>
+          {/* Floating Glass Stats Bar */}
+          <div className="mt-14 max-w-3xl mx-auto bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-5 shadow-2xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x divide-white/15">
+              <div className="flex items-center justify-center sm:justify-start gap-3.5 px-3 pt-2 sm:pt-0">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-accent shrink-0 shadow-inner border border-white/10">
+                  <Star className="w-5 h-5 text-accent fill-accent" />
+                </div>
+                <div className="text-left">
+                  <p className="font-heading font-bold text-lg text-white leading-none">4.9 / 5.0</p>
+                  <p className="text-xs text-stone-200 mt-1 font-sans">Đánh giá hài lòng</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Leaf className="w-5 h-5 text-accent" />
-              <div className="text-left">
-                <p className="font-bold text-base leading-none">100% Hữu Cơ</p>
-                <p className="text-xs text-stone-300">Thảo mộc thiên nhiên</p>
+
+              <div className="flex items-center justify-center sm:justify-start gap-3.5 px-3 pt-3 sm:pt-0 sm:pl-6">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-accent shrink-0 shadow-inner border border-white/10">
+                  <Leaf className="w-5 h-5 text-accent" />
+                </div>
+                <div className="text-left">
+                  <p className="font-heading font-bold text-lg text-white leading-none">100% Hữu Cơ</p>
+                  <p className="text-xs text-stone-200 mt-1 font-sans">Thảo mộc thiên nhiên</p>
+                </div>
               </div>
-            </div>
-            <div className="col-span-2 md:col-span-1 flex items-center justify-center gap-2">
-              <Sparkles className="w-5 h-5 text-accent" />
-              <div className="text-left">
-                <p className="font-bold text-base leading-none">10.000+</p>
-                <p className="text-xs text-stone-300">Lượt khách tại Cần Thơ</p>
+
+              <div className="flex items-center justify-center sm:justify-start gap-3.5 px-3 pt-3 sm:pt-0 sm:pl-6">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-accent shrink-0 shadow-inner border border-white/10">
+                  <Sparkles className="w-5 h-5 text-accent" />
+                </div>
+                <div className="text-left">
+                  <p className="font-heading font-bold text-lg text-white leading-none">10.000+</p>
+                  <p className="text-xs text-stone-200 mt-1 font-sans">Lượt khách Cần Thơ</p>
+                </div>
               </div>
             </div>
           </div>
