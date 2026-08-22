@@ -1,18 +1,34 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\SupabaseUserController;
-use App\Http\Controllers\SupabaseAppointmentController;
+use App\Http\Controllers\AppointmentController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Users API (Proxies to Supabase)
-Route::get('/api/users', [SupabaseUserController::class, 'index']);
-Route::post('/api/users', [SupabaseUserController::class, 'store']);
-Route::options('/api/users', function() { return response('', 204)->withHeaders(['Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS, PUT, DELETE', 'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With']); });
+// ---------------------------------------------------------------------------
+// CORS Preflight OPTIONS handler (dùng chung cho tất cả /api/* routes)
+// ---------------------------------------------------------------------------
+$corsHeaders = [
+    'Access-Control-Allow-Origin'  => '*',
+    'Access-Control-Allow-Methods' => 'GET, POST, PATCH, OPTIONS, PUT, DELETE',
+    'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With, X-User-Id',
+];
 
-// Appointments API (Proxies to Supabase and sends Email)
-Route::post('/api/appointments', [SupabaseAppointmentController::class, 'store']);
-Route::options('/api/appointments', function() { return response('', 204)->withHeaders(['Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS, PUT, DELETE', 'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With']); });
+Route::options('/api/{any}', function () use ($corsHeaders) {
+    return response('', 204)->withHeaders($corsHeaders);
+})->where('any', '.*');
+
+// ---------------------------------------------------------------------------
+// Appointments API
+// ---------------------------------------------------------------------------
+
+// POST   /api/appointments      — Khách đặt lịch (guest, không cần đăng nhập)
+Route::post('/api/appointments', [AppointmentController::class, 'store']);
+
+// GET    /api/appointments      — Admin lấy danh sách lịch hẹn (?status=pending)
+Route::get('/api/appointments', [AppointmentController::class, 'index']);
+
+// PATCH  /api/appointments/{id} — Admin cập nhật trạng thái lịch hẹn
+Route::patch('/api/appointments/{id}', [AppointmentController::class, 'updateStatus']);
