@@ -3,6 +3,7 @@ import {
   LayoutDashboard, 
   CalendarCheck2, 
   ShoppingBag, 
+  Package,
   Sparkles, 
   Users2, 
   Leaf, 
@@ -41,10 +42,15 @@ export default function AdminSidebar({
     },
     {
       id: 'orders',
-      label: 'Đơn hàng Mỹ phẩm',
+      label: 'Đơn hàng TMĐT',
       icon: ShoppingBag,
       badge: ordersCount > 0 ? ordersCount : null,
       badgeColor: 'bg-emerald-600 text-white',
+    },
+    {
+      id: 'products',
+      label: 'Sản phẩm & Mỹ phẩm',
+      icon: Package,
     },
     {
       id: 'blog',
@@ -69,7 +75,7 @@ export default function AdminSidebar({
   ]
 
   return (
-    <aside className="w-64 bg-[#0f1713] text-white border-r border-[#1c2e25] flex flex-col shrink-0 h-screen select-none">
+    <aside className="w-64 bg-[#0f1713] text-white border-r border-[#1c2e25] flex flex-col shrink-0 h-screen select-none font-sans">
       {/* Brand & Role Header */}
       <div className="p-5 border-b border-[#1c2e25] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
@@ -77,7 +83,7 @@ export default function AdminSidebar({
             <Leaf className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-heading font-bold text-lg text-white block leading-none tracking-tight">Eva Spa Studio</span>
+            <span className="font-serif font-bold text-lg text-white block leading-none tracking-tight">Eva Spa Studio</span>
             <div className="flex items-center gap-1 mt-1">
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
               <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider font-sans">Admin Portal</span>

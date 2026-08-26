@@ -1,21 +1,32 @@
 import { BrowserRouter, Routes, Route, Link, NavLink, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
-import { Leaf, Phone, MapPin, Clock, Sparkles, Heart } from 'lucide-react'
+import { Leaf, Phone, MapPin, Clock, Sparkles, Heart, ShoppingBag, User } from 'lucide-react'
+import { CartProvider, useCart } from '@/context/CartContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import CartDrawer from '@/components/cart/CartDrawer'
+import AuthModal from '@/components/auth/AuthModal'
 import Home from './pages/Home'
 import Booking from './pages/Booking'
 import Shop from './pages/Shop'
+import Checkout from './pages/Checkout'
+import OrderSuccess from './pages/OrderSuccess'
 import Blog from './pages/Blog'
+import BlogDetail from './pages/BlogDetail'
+import Account from './pages/Account'
 import AdminDashboard from './pages/admin/Dashboard'
 import PromoPopup from './components/PromoPopup'
 import './index.css'
 
 function Navbar() {
+  const { totalItems, setIsCartOpen } = useCart()
+  const { user, setIsAuthModalOpen } = useAuth()
+
   return (
-    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/80 transition-all">
+    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/80 transition-all font-sans">
       {/* Top Banner Notice */}
       <div className="bg-primary text-primary-foreground text-xs py-1.5 px-4 text-center font-medium tracking-wide flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 text-accent animate-pulse" />
-        <span>Ưu đãi tháng này: Tặng liệu trình ngâm chân thảo mộc cho mọi lịch hẹn dưỡng sinh</span>
+        <span>Ưu đãi tháng này: Miễn phí giao hàng toàn quốc cho đơn mỹ phẩm từ 500.000đ</span>
       </div>
 
       <div className="container mx-auto px-4 py-3.5 flex justify-between items-center">
@@ -74,14 +85,52 @@ function Navbar() {
           </NavLink>
         </nav>
 
-        {/* Action Button */}
-        <div className="flex items-center gap-3">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Shopping Cart Button */}
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="relative p-2 rounded-xl bg-secondary/80 hover:bg-secondary text-primary transition-all cursor-pointer flex items-center justify-center border border-border"
+            title="Giỏ hàng"
+          >
+            <ShoppingBag className="w-5 h-5" />
+            {totalItems > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground text-[11px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center shadow-xs animate-in zoom-in">
+                {totalItems}
+              </span>
+            )}
+          </button>
+
+          {/* User Account / Login Button */}
+          {user ? (
+            <Link
+              to="/account"
+              className="flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-foreground px-3 py-2 rounded-xl text-xs font-semibold border border-border transition-all"
+              title="Trang cá nhân & Lịch hẹn"
+            >
+              <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+                {user.fullName.charAt(0).toUpperCase()}
+              </div>
+              <span className="hidden sm:inline max-w-[90px] truncate">{user.fullName}</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary px-3 py-2 rounded-xl text-xs font-semibold hover:bg-secondary transition-all cursor-pointer"
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Đăng nhập</span>
+            </button>
+          )}
+
+          {/* Booking CTA */}
           <Link 
             to="/booking" 
-            className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-2 rounded-xl text-sm font-semibold hover:bg-accent/90 transition-all shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+            className="inline-flex items-center gap-1.5 sm:gap-2 bg-accent text-accent-foreground px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold hover:bg-accent/90 transition-all shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Đặt Lịch Ngay</span>
+            <span>Đặt Lịch</span>
           </Link>
         </div>
       </div>
@@ -91,9 +140,9 @@ function Navbar() {
 
 function Footer() {
   return (
-    <footer className="bg-secondary/70 border-t border-border mt-20 pt-14 pb-8 text-foreground">
+    <footer className="bg-secondary/70 border-t border-border mt-20 pt-14 pb-8 text-foreground font-sans">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-border/60">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-border/60 text-left">
           {/* Col 1: Brand Info */}
           <div className="md:col-span-1 space-y-4">
             <div className="flex items-center gap-2">
@@ -128,11 +177,11 @@ function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-accent shrink-0" />
-                <span>Hotline: 0912 345 678</span>
+                <span>Hotline: 0766.98.3979</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-accent shrink-0" />
-                <span>Ninh Kiều, Cần Thơ</span>
+                <span>9B Lý Tự Trọng, Ninh Kiều, Cần Thơ</span>
               </div>
             </div>
           </div>
@@ -171,6 +220,8 @@ function ClientLayout() {
         <Outlet />
       </main>
       <Footer />
+      <CartDrawer />
+      <AuthModal />
       <PromoPopup />
     </div>
   )
@@ -179,19 +230,27 @@ function ClientLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Client Routes (with Navbar & Footer) */}
-        <Route element={<ClientLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/booking" element={<Booking />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/blog" element={<Blog />} />
-        </Route>
+      <AuthProvider>
+        <CartProvider>
+          <Routes>
+            {/* Public Client Routes (with Navbar & Footer) */}
+            <Route element={<ClientLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/booking" element={<Booking />} />
+              <Route path="/shop" element={<Shop />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/order-success" element={<OrderSuccess />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogDetail />} />
+              <Route path="/account" element={<Account />} />
+            </Route>
 
-        {/* Standalone Admin Route (Completely separate full-screen layout) */}
-        <Route path="/admin" element={<AdminDashboard />} />
-      </Routes>
-      <Toaster richColors />
+            {/* Standalone Admin Route */}
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Routes>
+          <Toaster richColors />
+        </CartProvider>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

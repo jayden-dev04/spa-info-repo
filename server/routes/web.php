@@ -2,9 +2,23 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\OrderController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return response()->json([
+        'name'        => 'Eva Spa REST API Engine',
+        'status'      => 'online',
+        'version'     => '1.0.0',
+        'framework'   => 'Laravel 12 (PHP 8.4)',
+        'endpoints'   => [
+            'POST /api/appointments' => 'Tạo lịch hẹn mới',
+            'GET /api/appointments'  => 'Lấy danh sách lịch hẹn',
+            'PATCH /api/appointments/{id}' => 'Cập nhật trạng thái lịch hẹn',
+            'POST /api/orders'       => 'Tạo đơn hàng mới',
+            'GET /api/orders'        => 'Lấy danh sách đơn hàng',
+            'PATCH /api/orders/{id}' => 'Cập nhật trạng thái đơn hàng',
+        ],
+    ]);
 });
 
 // ---------------------------------------------------------------------------
@@ -32,3 +46,16 @@ Route::get('/api/appointments', [AppointmentController::class, 'index']);
 
 // PATCH  /api/appointments/{id} — Admin cập nhật trạng thái lịch hẹn
 Route::patch('/api/appointments/{id}', [AppointmentController::class, 'updateStatus']);
+
+// ---------------------------------------------------------------------------
+// Orders API (E-Commerce)
+// ---------------------------------------------------------------------------
+
+// POST   /api/orders            — Khách đặt hàng từ giỏ hàng
+Route::post('/api/orders', [OrderController::class, 'store']);
+
+// GET    /api/orders            — Admin lấy danh sách đơn hàng (?status=pending)
+Route::get('/api/orders', [OrderController::class, 'index']);
+
+// PATCH  /api/orders/{id}       — Admin cập nhật trạng thái đơn hàng (shipped, completed, cancelled)
+Route::patch('/api/orders/{id}', [OrderController::class, 'updateStatus']);

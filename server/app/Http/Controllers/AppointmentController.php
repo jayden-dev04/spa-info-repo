@@ -65,8 +65,8 @@ class AppointmentController extends Controller
     private function supabaseHeaders(bool $serviceRole = false): array
     {
         $key = $serviceRole
-            ? env('SUPABASE_SECRET_KEY')
-            : env('SUPABASE_PUBLISHABLE_KEY');
+            ? (env('SUPABASE_SECRET_KEY') ?: env('SUPABASE_KEY'))
+            : (env('SUPABASE_PUBLISHABLE_KEY') ?: env('SUPABASE_KEY'));
 
         return [
             'apikey'        => $key,
@@ -119,10 +119,11 @@ class AppointmentController extends Controller
         // 4. Tạo tài khoản Supabase Auth qua Admin API
         //    Dùng SUPABASE_SECRET_KEY (service_role) để bypass RLS
         // ------------------------------------------------------------------
+        $authKey = env('SUPABASE_SECRET_KEY') ?: env('SUPABASE_KEY');
         $authRes = Http::withoutVerifying()
             ->withHeaders([
-                'apikey'        => env('SUPABASE_SECRET_KEY'),
-                'Authorization' => 'Bearer ' . env('SUPABASE_SECRET_KEY'),
+                'apikey'        => $authKey,
+                'Authorization' => 'Bearer ' . $authKey,
                 'Content-Type'  => 'application/json',
             ])
             ->post("{$this->baseUrl()}/auth/v1/admin/users", [
@@ -139,7 +140,7 @@ class AppointmentController extends Controller
 
         if ($authRes->successful()) {
             // Tài khoản mới được tạo thành công
-            $clientId = $authRes->json()['id'];
+            $clientId = $authRes->json()['id'] ?? null;
         } else {
             $errBody = $authRes->json();
             $errMsg  = $errBody['msg'] ?? ($errBody['message'] ?? '');
@@ -160,18 +161,9 @@ class AppointmentController extends Controller
 
                 if ($userRes->successful() && !empty($userRes->json())) {
                     $clientId = $userRes->json()[0]['id'];
-                } else {
-                    return response()->json([
-                        'success' => false,
-                        'error'   => 'Email đã được đăng ký nhưng không tìm thấy thông tin tài khoản. Vui lòng liên hệ spa.',
-                    ], 422)->withHeaders($this->corsHeaders());
                 }
             } else {
-                Log::error('Supabase Auth create user failed', ['body' => $errBody, 'status' => $authRes->status()]);
-                return response()->json([
-                    'success' => false,
-                    'error'   => 'Không thể tạo tài khoản. Vui lòng thử lại sau.',
-                ], 500)->withHeaders($this->corsHeaders());
+                Log::warning('Supabase Auth create user warning', ['body' => $errBody, 'status' => $authRes->status()]);
             }
         }
 
