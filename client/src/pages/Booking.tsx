@@ -51,7 +51,7 @@ export default function Booking() {
       customer_phone: phone,
       customer_email: email,
       appointment_date: date,
-      service_id: String(vals.get('service') || '') || null,
+      service_id: Number(vals.get('service')) || null,
       notes: vals.get('notes'),
     }
 

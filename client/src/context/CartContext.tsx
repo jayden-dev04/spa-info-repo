@@ -51,6 +51,13 @@ function rowToItem(r: any): CartItem {
   }
 }
 
+/** Chủ giỏ: user đăng nhập -> 'u:<uid>' (đồng bộ đa máy), khách -> session_key máy.
+ *  DB unique theo (session_key, product_id); user_id vẫn lưu để truy vết. */
+async function ownerKey(): Promise<string> {
+  const uid = await currentUserId()
+  return uid ? 'u:' + uid : getCartSessionKey()
+}
+
 async function currentUserId(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getSession()
@@ -83,14 +90,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const sessionKey = getCartSessionKey()
       const uid = await currentUserId()
+      const owner = await ownerKey()
       const q = supabase
         .from('cart_items')
         .select('product_id, product_name, price, image_url, quantity')
-      const res = uid
-        ? await q.eq('user_id', uid).order('updated_at', { ascending: true })
-        : await q.eq('session_key', sessionKey).order('updated_at', { ascending: true })
+      const res = await q.eq('session_key', owner).order('updated_at', { ascending: true })
       if (cancelled || res.error) {
         if (res.error) console.warn('cart_items unreadable, giữ local:', res.error.message)
         return
@@ -103,7 +108,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           for (const localItem of JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]')) {
             dbWrite(() =>
               supabase.from('cart_items').upsert(
-                { session_key: sessionKey, user_id: null, product_id: String(localItem.id), product_name: localItem.name, price: localItem.price, image_url: localItem.imageUrl, quantity: localItem.quantity },
+                { session_key: owner, user_id: null, product_id: String(localItem.id), product_name: localItem.name, price: localItem.price, image_url: localItem.imageUrl, quantity: localItem.quantity },
                 { onConflict: 'session_key,product_id' },
               ),
             )
@@ -115,7 +120,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         for (const it of local) {
           dbWrite(() =>
             supabase.from('cart_items').upsert(
-              { session_key: sessionKey, user_id: uid, product_id: String(it.id), product_name: it.name, price: it.price, image_url: it.imageUrl, quantity: it.quantity },
+              { session_key: owner, user_id: uid, product_id: String(it.id), product_name: it.name, price: it.price, image_url: it.imageUrl, quantity: it.quantity },
               { onConflict: 'session_key,product_id' },
             ),
           )
@@ -126,13 +131,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { cancelled = true }
   }, [])
 
+
+  // 1b) vừa đăng nhập: giỏ khách (session_key máy) thuộc về 'u:<uid>' → đổi chủ
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== 'SIGNED_IN' || !session?.user) return
+      const uid = session.user.id
+      const sk = getCartSessionKey()
+      dbWrite(() =>
+        supabase.from('cart_items').update({ session_key: 'u:' + uid, user_id: uid }).eq('session_key', sk),
+      )
+    })
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
   // 2) phản chiếu mọi thay đổi local -> DB + cache localStorage
   const syncRow = useCallback((item: CartItem) => {
-    const sessionKey = getCartSessionKey()
-    currentUserId().then((uid) =>
+    ownerKey().then((sk) =>
       dbWrite(() =>
         supabase.from('cart_items').upsert(
-          { session_key: sessionKey, user_id: uid, product_id: String(item.id), product_name: item.name, price: item.price, image_url: item.imageUrl, quantity: item.quantity, updated_at: new Date().toISOString() },
+          { session_key: sk, product_id: String(item.id), product_name: item.name, price: item.price, image_url: item.imageUrl, quantity: item.quantity, updated_at: new Date().toISOString() },
           { onConflict: 'session_key,product_id' },
         ),
       ),
@@ -140,22 +158,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const deleteRow = useCallback((productId: string | number) => {
-    const sessionKey = getCartSessionKey()
-    currentUserId().then(() =>
+    ownerKey().then((sk) =>
       dbWrite(() =>
         supabase
           .from('cart_items')
           .delete()
-          .eq('session_key', sessionKey)
+          .eq('session_key', sk)
           .eq('product_id', String(productId)),
       ),
     )
   }, [])
 
   const wipeRows = useCallback(() => {
-    const sessionKey = getCartSessionKey()
-    currentUserId().then(() => {
-      dbWrite(() => supabase.from('cart_items').delete().eq('session_key', sessionKey))
+    ownerKey().then((sk) => {
+      dbWrite(() => supabase.from('cart_items').delete().eq('session_key', sk))
     })
   }, [])
 

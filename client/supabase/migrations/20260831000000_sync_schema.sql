@@ -1,206 +1,157 @@
 -- ============================================================
--- 01_schema: đồng bộ TOÀN BỘ schema public về đúng migration trong repo
---   (idempotent — chạy lại nhiều lần an toàn)
--- Vấn đề thực tế đã kiểm chứng bằng PostgREST (publishable key):
---   products  : thiếu stock/category/original_price/rating
---   orders    : thiếu user_id/customer_* + cột TMĐT (PGRST204 khi insert)
---   appointments: thiếu user_id/customer_*/notes
---   order_items : thiếu price
---   popup_configs: KHÔNG tồn tại (404)
--- CREATE TABLE IF NOT EXISTS KHÔNG bù cột cho bảng đã tồn tại — vì vậy
--- mọi bảng đều có ALTER ... ADD COLUMN IF NOT EXISTS riêng.
--- Chạy: Supabase Dashboard → SQL Editor → dán hết → Run.
--- Thứ tự: 01 → 02 → 03.
+-- EVA SPA — RUN THIS FIRST IN SUPABASE SQL EDITOR
+-- (Dashboard → SQL Editor → New → paste → Run)
+--
+-- Bù cột / cột sinh tự động / RLS policy cho các bảng ĐÃ TỒN TẠI
+-- để Laravel backend + SPA dùng được mà KHÔNG cần service_role key:
+--   orders         : thêm payment_method, coupon_code
+--   products       : thêm is_active, DEFAULT id
+--   appointments   : trigger sinh created_at, policy cho anon đặt lịch
+--   blog_posts     : (tạo nếu chưa có — xem seed_blog_posts.sql)
+-- Chạy idempotent (IF NOT EXISTS), chạy lại được nhiều lần.
 -- ============================================================
 
--- ===================== USERS =====================
-CREATE TABLE IF NOT EXISTS public.users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE,
-  full_name TEXT,
-  role TEXT DEFAULT 'user',
-  account_source TEXT DEFAULT 'guest_booking',
-  avatar_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.users
-  ADD COLUMN IF NOT EXISTS email           TEXT,
-  ADD COLUMN IF NOT EXISTS full_name       TEXT,
-  ADD COLUMN IF NOT EXISTS role            TEXT DEFAULT 'user',
-  ADD COLUMN IF NOT EXISTS account_source  TEXT DEFAULT 'guest_booking',
-  ADD COLUMN IF NOT EXISTS avatar_url      TEXT,
-  ADD COLUMN IF NOT EXISTS updated_at      TIMESTAMPTZ DEFAULT now();
+-- orders: 2 cột Laravel + SPA ghi
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'COD';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;
 
--- ===================== SERVICES =====================
-CREATE TABLE IF NOT EXISTS public.services (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  short_description TEXT,
-  description TEXT,
-  price NUMERIC(10, 2) NOT NULL,
-  duration_minutes INTEGER DEFAULT 60,
-  image_url TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+-- products: admin toggle + insert không cần id
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.products ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
--- ===================== PRODUCTS =====================
-CREATE TABLE IF NOT EXISTS public.products (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  short_description TEXT,
-  price NUMERIC(10, 2) NOT NULL,
-  original_price NUMERIC(10, 2),
-  stock INTEGER DEFAULT 0,
-  category TEXT,
-  rating NUMERIC(3, 2),
-  image_url TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.products
-  ADD COLUMN IF NOT EXISTS short_description TEXT,
-  ADD COLUMN IF NOT EXISTS original_price    NUMERIC(10, 2),
-  ADD COLUMN IF NOT EXISTS stock             INTEGER DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS category          TEXT,
-  ADD COLUMN IF NOT EXISTS rating            NUMERIC(3, 2),
-  ADD COLUMN IF NOT EXISTS image_url         TEXT,
-  ADD COLUMN IF NOT EXISTS is_active         BOOLEAN DEFAULT true,
-  ADD COLUMN IF NOT EXISTS description       TEXT,
-  ADD COLUMN IF NOT EXISTS price             NUMERIC(10, 2),
-  ADD COLUMN IF NOT EXISTS updated_at        TIMESTAMPTZ DEFAULT now();
+-- appointments: frontend gửi appointment_date (date) — chắc chắn cột tồn tại + dạng date
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS appointment_date DATE;
+ALTER TABLE public.appointments ALTER COLUMN appointment_date TYPE DATE USING appointment_date::date;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
 
--- ===================== ORDERS (+ cột TMĐT) =====================
-CREATE TABLE IF NOT EXISTS public.orders (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  customer_name TEXT,
-  customer_email TEXT,
-  customer_phone TEXT,
-  customer_address TEXT,
-  total_amount NUMERIC(10, 2) NOT NULL,
-  status TEXT DEFAULT 'pending',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.orders
-  ADD COLUMN IF NOT EXISTS user_id          UUID,
-  ADD COLUMN IF NOT EXISTS customer_name    TEXT,
-  ADD COLUMN IF NOT EXISTS customer_email   TEXT,
-  ADD COLUMN IF NOT EXISTS customer_phone   TEXT,
-  ADD COLUMN IF NOT EXISTS customer_address TEXT,
-  ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT now(),
-  ADD COLUMN IF NOT EXISTS shipping_fee     NUMERIC(10, 2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS payment_method   TEXT DEFAULT 'cod',
-  ADD COLUMN IF NOT EXISTS notes            TEXT,
-  ADD COLUMN IF NOT EXISTS order_code       TEXT;
-
-CREATE UNIQUE INDEX IF NOT EXISTS orders_order_code_key ON public.orders (order_code);
-
-DO $$
+-- created_at/updated_at tự động cho appointments + orders (SPA/Laravel không phải gửi)
+CREATE OR REPLACE FUNCTION public.set_timestamps() RETURNS trigger AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_user_id_fkey') THEN
-    ALTER TABLE public.orders
-      ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id)
-      REFERENCES public.users(id) ON DELETE SET NULL;
-  END IF;
-END $$;
+  IF NEW.created_at IS NULL THEN NEW.created_at := now(); END IF;
+  NEW.updated_at := now();
+  RETURN NEW;
+END $$ LANGUAGE plpgsql;
 
--- ===================== ORDER_ITEMS =====================
-CREATE TABLE IF NOT EXISTS public.order_items (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
-  product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
-  quantity INTEGER NOT NULL,
-  price NUMERIC(10, 2) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.order_items
-  ADD COLUMN IF NOT EXISTS quantity INTEGER,
-  ADD COLUMN IF NOT EXISTS price    NUMERIC(10, 2);
+DROP TRIGGER IF EXISTS trg_appointments_timestamps ON public.appointments;
+CREATE TRIGGER trg_appointments_timestamps BEFORE INSERT OR UPDATE ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.set_timestamps();
+DROP TRIGGER IF EXISTS trg_orders_timestamps ON public.orders;
+CREATE TRIGGER trg_orders_timestamps BEFORE INSERT OR UPDATE ON public.orders
+  FOR EACH ROW EXECUTE FUNCTION public.set_timestamps();
 
--- ===================== APPOINTMENTS =====================
-CREATE TABLE IF NOT EXISTS public.appointments (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  service_id INTEGER REFERENCES public.services(id) ON DELETE CASCADE,
-  customer_name TEXT,
-  customer_email TEXT,
-  customer_phone TEXT,
-  appointment_date TIMESTAMPTZ NOT NULL,
-  status TEXT DEFAULT 'pending',
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.appointments
-  ADD COLUMN IF NOT EXISTS user_id        UUID,
-  ADD COLUMN IF NOT EXISTS customer_name  TEXT,
-  ADD COLUMN IF NOT EXISTS customer_email TEXT,
-  ADD COLUMN IF NOT EXISTS customer_phone TEXT,
-  ADD COLUMN IF NOT EXISTS notes          TEXT,
-  ADD COLUMN IF NOT EXISTS service_id     INTEGER;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'appointments_service_id_fkey') THEN
-    ALTER TABLE public.appointments
-      ADD CONSTRAINT appointments_service_id_fkey FOREIGN KEY (service_id)
-      REFERENCES public.services(id) ON DELETE CASCADE;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'appointments_user_id_fkey') THEN
-    ALTER TABLE public.appointments
-      ADD CONSTRAINT appointments_user_id_fkey FOREIGN KEY (user_id)
-      REFERENCES public.users(id) ON DELETE SET NULL;
-  END IF;
-END $$;
-
--- ===================== BLOG_POSTS =====================
-CREATE TABLE IF NOT EXISTS public.blog_posts (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  content TEXT NOT NULL,
-  author_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  published_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- ===================== POPUP_CONFIGS (admin PopupTab) =====================
+-- ============================================================
+-- BẢNG MỚI: popup_configs (cấu hình popup + coupon tháng này)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS public.popup_configs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  key TEXT UNIQUE DEFAULT 'default',
-  config JSONB NOT NULL DEFAULT '{}'::jsonb,
-  updated_at TIMESTAMPTZ DEFAULT now()
+  key TEXT PRIMARY KEY DEFAULT 'default',
+  config JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ===================== RLS: mở cho khách (luồng guest hiện hữu) ==========
-ALTER TABLE public.services       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.order_items    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.appointments   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.blog_posts     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.popup_configs  ENABLE ROW LEVEL SECURITY;
+-- ============================================================
+-- BẢNG MỚI: blog_posts (bài blog SEO — admin chỉnh sửa)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.blog_posts (
+  slug TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Dưỡng Sinh & Trị Liệu',
+  excerpt TEXT,
+  content TEXT NOT NULL DEFAULT '',
+  image_url TEXT,
+  views INTEGER NOT NULL DEFAULT 0,
+  read_time TEXT DEFAULT '5 phút đọc',
+  date_label TEXT,
+  author TEXT DEFAULT 'Eva Spa',
+  meta_title TEXT,
+  meta_description TEXT,
+  focus_keyword TEXT,
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- An toàn: chính sách chỉ tạo nếu chưa có (không ghi đè policy admin đã đặt).
-DO $$
-DECLARE t TEXT;
-BEGIN
-  FOREACH t IN ARRAY ARRAY['services','products','orders','order_items','appointments','blog_posts','popup_configs'] LOOP
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename=t AND policyname = t || '_anon_all') THEN
-      EXECUTE format(
-        'CREATE POLICY %I ON public.%I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true)',
-        t || '_anon_all', t
-      );
-    END IF;
-  END LOOP;
-END $$;
+-- ============================================================
+-- RLS: khách vãng lai (anon) được ĐẶT LỊCH + ĐƠN HÀNG + ĐỌC DANH MỤC.
+-- Admin ghi qua Laravel (Secret Key bỏ qua RLS) hoặc từ Dashboard.
+-- Nếu muốn khóa chặt hơn sau này: đổi 'anon' thành 'authenticated'.
+-- ============================================================
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.popup_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 
--- ===================== Nạp lại schema cache =====================
-NOTIFY pgrst, 'reload schema';
+DROP POLICY IF EXISTS "anon_insert_appointments" ON public.appointments;
+CREATE POLICY "anon_insert_appointments" ON public.appointments
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_read_appointments" ON public.appointments;
+CREATE POLICY "anon_read_appointments" ON public.appointments
+  FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_insert_orders" ON public.orders;
+CREATE POLICY "anon_insert_orders" ON public.orders
+  FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_read_orders" ON public.orders;
+CREATE POLICY "anon_read_orders" ON public.orders
+  FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_read_products" ON public.products;
+CREATE POLICY "anon_read_products" ON public.products
+  FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_write_products" ON public.products;
+CREATE POLICY "anon_write_products" ON public.products
+  FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_read_blog" ON public.blog_posts;
+CREATE POLICY "anon_read_blog" ON public.blog_posts
+  FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_write_blog" ON public.blog_posts;
+CREATE POLICY "anon_write_blog" ON public.blog_posts
+  FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_read_popup" ON public.popup_configs;
+CREATE POLICY "anon_read_popup" ON public.popup_configs
+  FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_write_popup" ON public.popup_configs;
+CREATE POLICY "anon_write_popup" ON public.popup_configs
+  FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "anon_read_services" ON public.services;
+CREATE POLICY "anon_read_services" ON public.services
+  FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "anon_write_services" ON public.services;
+CREATE POLICY "anon_write_services" ON public.services
+  FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+-- ============================================================
+-- BẢNG MỚI: cart_items (giỏ hàng đồng bộ giữa các máy)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.cart_items (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  session_key TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  product_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  price NUMERIC NOT NULL DEFAULT 0,
+  image_url TEXT,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (COALESCE(session_key, ''), product_id)
+);
+
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "own_session_cart" ON public.cart_items;
+CREATE POLICY "own_session_cart" ON public.cart_items
+  FOR ALL TO anon, authenticated
+  USING ((session_key IS NOT NULL AND auth.uid() IS NULL) OR (auth.uid() = user_id))
+  WITH CHECK ((session_key IS NOT NULL AND auth.uid() IS NULL) OR (auth.uid() = user_id));
