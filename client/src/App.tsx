@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, NavLink, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { Leaf, Phone, MapPin, Clock, Sparkles, Heart, ShoppingBag, User } from 'lucide-react'
@@ -16,21 +16,23 @@ import BlogDetail from './pages/BlogDetail'
 import Account from './pages/Account'
 import AuthCallback from './pages/AuthCallback'
 import AdminPortalRoute from './pages/admin/AdminPortalRoute'
-import PromoPopup, { DEFAULT_POPUP_CONFIG } from './components/PromoPopup'
+import PromoPopup from './components/PromoPopup'
+import { getCachedPopupConfig, fetchPopupConfig } from '@/lib/siteConfig'
 import './index.css'
 
 function Navbar() {
   const { totalItems, setIsCartOpen } = useCart()
   const { user, setIsAuthModalOpen } = useAuth()
-  // Coupon tháng này — cùng nguồn eva_spa_popup_config với PopupTab (admin)
-  const bannerConfig = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('eva_spa_popup_config')
-      const cfg = saved ? { ...DEFAULT_POPUP_CONFIG, ...JSON.parse(saved) } : DEFAULT_POPUP_CONFIG
-      return { couponCode: cfg.couponCode || '', couponExpiresAt: cfg.couponExpiresAt || '' }
-    } catch {
-      return { couponCode: DEFAULT_POPUP_CONFIG.couponCode || '', couponExpiresAt: DEFAULT_POPUP_CONFIG.couponExpiresAt || '' }
-    }
+  // Coupon tháng này — cache local ngay, rồi đồng bộ từ Supabase popup_configs
+  const [bannerConfig, setBannerConfig] = useState(() => {
+    const cfg = getCachedPopupConfig()
+    return { couponCode: cfg.couponCode || '', couponExpiresAt: cfg.couponExpiresAt || '' }
+    // (cache-local khởi tạo; fetchPopupConfig() phía dưới đồng bộ từ Supabase)
+  })
+  useEffect(() => {
+    fetchPopupConfig().then((cfg) =>
+      setBannerConfig({ couponCode: cfg.couponCode || '', couponExpiresAt: cfg.couponExpiresAt || '' }),
+    )
   }, [])
   const { couponCode, couponExpiresAt } = bannerConfig
 

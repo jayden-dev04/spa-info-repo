@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Megaphone, 
   Save, 
@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { DEFAULT_POPUP_CONFIG } from '@/components/PromoPopup'
 import type { PopupConfig } from '@/components/PromoPopup'
+import { getCachedPopupConfig, fetchPopupConfig, savePopupConfig } from '@/lib/siteConfig'
 
 const PRESET_IMAGES = [
   {
@@ -38,31 +39,37 @@ const PRESET_IMAGES = [
 ]
 
 export default function PopupTab() {
-  const [config, setConfig] = useState<PopupConfig>(() => {
-    const saved = localStorage.getItem('eva_spa_popup_config')
-    return saved ? { ...DEFAULT_POPUP_CONFIG, ...JSON.parse(saved) } : DEFAULT_POPUP_CONFIG
-  })
+  const [config, setConfig] = useState<PopupConfig>(() => getCachedPopupConfig())
 
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Đọc cấu hình thật từ Supabase popup_configs khi mở tab
+  useEffect(() => {
+    fetchPopupConfig().then((cfg) => setConfig(cfg))
+  }, [])
 
   const handleUpdate = (updated: Partial<PopupConfig>) => {
     setConfig((prev) => ({ ...prev, ...updated }))
     setHasChanges(true)
   }
 
-  const handleSave = () => {
-    localStorage.setItem('eva_spa_popup_config', JSON.stringify(config))
+  const handleSave = async () => {
+    const ok = await savePopupConfig(config)
+    if (!ok) {
+      toast.error('Không thể lưu cấu hình Popup vào Supabase — kiểm tra bảng popup_configs.')
+      return
+    }
     // Clear session and day flags so the admin can test immediately
     sessionStorage.removeItem('eva_spa_popup_shown')
     localStorage.removeItem('eva_spa_popup_last_shown')
     setHasChanges(false)
-    toast.success('Đã lưu cấu hình Popup Giới Thiệu thành công!')
+    toast.success('Đã lưu cấu hình Popup vào Supabase thành công!')
   }
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirm('Bạn có muốn đặt lại cấu hình Popup về mặc định?')) {
       setConfig(DEFAULT_POPUP_CONFIG)
-      localStorage.setItem('eva_spa_popup_config', JSON.stringify(DEFAULT_POPUP_CONFIG))
+      await savePopupConfig(DEFAULT_POPUP_CONFIG)
       setHasChanges(false)
       toast.info('Đã khôi phục cấu hình mặc định')
     }

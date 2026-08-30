@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getCachedPopupConfig, fetchPopupConfig } from '@/lib/siteConfig'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 
@@ -20,6 +21,8 @@ export interface PopupConfig {
   couponLabel?: string
   couponExpiresAt?: string
 }
+
+type TimerId = ReturnType<typeof setTimeout>
 
 export const DEFAULT_POPUP_CONFIG: PopupConfig = {
   enabled: true,
@@ -47,48 +50,40 @@ export default function PromoPopup() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const saved = localStorage.getItem('eva_spa_popup_config')
-    let activeConfig = DEFAULT_POPUP_CONFIG
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        // If the saved config still has old english title, upgrade to vietnamese default
-        if (parsed.title === 'ONLY 199K' || parsed.badge === "EXTRA 30' FACIAL CARE") {
-          activeConfig = DEFAULT_POPUP_CONFIG
-          localStorage.setItem('eva_spa_popup_config', JSON.stringify(DEFAULT_POPUP_CONFIG))
-        } else {
-          activeConfig = { ...DEFAULT_POPUP_CONFIG, ...parsed }
-        }
-      } catch (e) {
-        console.error('Lỗi đọc cấu hình popup:', e)
-      }
-    }
-    setConfig(activeConfig)
+    let cancelled = false
+    let timer: TimerId | null = null
+    ;(async () => {
+      // Nguồn sự thật: Supabase popup_configs (cache local chỉ là bước đệm offline)
+      let activeConfig = getCachedPopupConfig()
+      const parsed = await fetchPopupConfig()
+      if (cancelled) return
+      activeConfig = parsed
+      setConfig(activeConfig)
 
-    if (!activeConfig.enabled) return
+      if (!activeConfig.enabled) return
 
-    // Frequency check
-    if (activeConfig.frequency === 'once_per_session') {
-      if (sessionStorage.getItem('eva_spa_popup_shown')) return
-    } else if (activeConfig.frequency === 'once_per_day') {
-      const lastShown = localStorage.getItem('eva_spa_popup_last_shown')
-      if (lastShown) {
-        const lastDate = new Date(lastShown).toDateString()
-        const today = new Date().toDateString()
-        if (lastDate === today) return
-      }
-    }
-
-    const timer = setTimeout(() => {
-      setIsOpen(true)
+      // Frequency check
       if (activeConfig.frequency === 'once_per_session') {
-        sessionStorage.setItem('eva_spa_popup_shown', 'true')
+        if (sessionStorage.getItem('eva_spa_popup_shown')) return
       } else if (activeConfig.frequency === 'once_per_day') {
-        localStorage.setItem('eva_spa_popup_last_shown', new Date().toISOString())
+        const lastShown = localStorage.getItem('eva_spa_popup_last_shown')
+        if (lastShown) {
+          const lastDate = new Date(lastShown).toDateString()
+          const today = new Date().toDateString()
+          if (lastDate === today) return
+        }
       }
-    }, (activeConfig.delaySeconds || 1.5) * 1000)
 
-    return () => clearTimeout(timer)
+      timer = setTimeout(() => {
+        setIsOpen(true)
+        if (activeConfig.frequency === 'once_per_session') {
+          sessionStorage.setItem('eva_spa_popup_shown', 'true')
+        } else if (activeConfig.frequency === 'once_per_day') {
+          localStorage.setItem('eva_spa_popup_last_shown', new Date().toISOString())
+        }
+      }, (activeConfig.delaySeconds || 1.5) * 1000)
+    })()
+    return () => { cancelled = true; clearTimeout(timer as any) }
   }, [])
 
   const handleClose = () => {

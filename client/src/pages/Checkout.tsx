@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { DEFAULT_POPUP_CONFIG } from '@/components/PromoPopup'
+import { getCachedPopupConfig, fetchPopupConfig } from '@/lib/siteConfig'
 
 // Danh sách ngân hàng chọn được — mỗi mã đơn gắn với MỘT tài khoản
 // VietQR thật (theo PROJECT_OVERVIEW), nên chọn ngân hàng chỉ đổi logo/
@@ -61,18 +61,19 @@ export default function Checkout() {
     notes: '',
   })
 
-  // Coupon hợp lệ lấy từ cùng nguồn với banner: config popup admin (mặc định 'T7SPRING')
+  // Coupon hợp lệ lấy từ cùng nguồn với banner: Supabase popup_configs (admin PopupTab)
+  const [dbCoupon, setDbCoupon] = useState<{ code: string; label: string } | null>(null)
   const activeCoupon = useMemo(() => {
-    try {
-      const saved = localStorage.getItem('eva_spa_popup_config')
-      const parsed = saved ? JSON.parse(saved) : {}
-      // Config cũ (lưu trước khi có coupon mặc định) không được làm mất mã mặc định
-      const cfg = { ...DEFAULT_POPUP_CONFIG, ...parsed }
-      if (!cfg.couponCode && DEFAULT_POPUP_CONFIG.couponCode) cfg.couponCode = DEFAULT_POPUP_CONFIG.couponCode
-      return { code: (cfg.couponCode || '').toUpperCase(), label: cfg.couponLabel || 'Mã giảm giá' }
-    } catch {
-      return { code: (DEFAULT_POPUP_CONFIG.couponCode || '').toUpperCase(), label: DEFAULT_POPUP_CONFIG.couponLabel || 'Mã giảm giá' }
-    }
+    const cfg = dbCoupon ? dbCoupon : (() => {
+      const c = getCachedPopupConfig()
+      return { code: (c.couponCode || '').toUpperCase(), label: c.couponLabel || 'Mã giảm giá' }
+    })()
+    return cfg
+  }, [dbCoupon])
+  useEffect(() => {
+    fetchPopupConfig().then((cfg) =>
+      setDbCoupon({ code: (cfg.couponCode || '').toUpperCase(), label: cfg.couponLabel || 'Mã giảm giá' }),
+    )
   }, [])
   const discount = appliedCoupon && appliedCoupon === activeCoupon.code ? Math.min(100000, Math.round(totalAmount * 0.1)) : 0
   // Redirect to shop if cart is empty

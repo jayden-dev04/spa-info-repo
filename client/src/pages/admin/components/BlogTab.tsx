@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { 
   Plus, 
   Search, 
@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import BlogEditorView from './BlogEditorView'
 import type { BlogPost } from './BlogEditorView'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 
 const INITIAL_BLOG_POSTS: BlogPost[] = [
   {
@@ -90,11 +91,68 @@ export default function BlogTab() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all')
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
 
-  // Save to localStorage when posts change
+  // Nguồn sự thật: bảng public.blog_posts (Supabase). localStorage chỉ cache.
+  const toRow = (p: BlogPost) => ({
+    slug: p.seoData.slug || p.id,
+    title: p.title,
+    category: p.category,
+    excerpt: p.excerpt,
+    content: p.content,
+    image_url: p.featuredImage,
+    views: p.views,
+    read_time: p.readTime,
+    date_label: p.date,
+    author: p.author,
+    meta_title: p.seoData.metaTitle,
+    meta_description: p.seoData.metaDescription,
+    focus_keyword: p.seoData.focusKeyword,
+    published_at: p.status === 'published' ? (p.date ? new Date().toISOString() : null) : null,
+    updated_at: new Date().toISOString(),
+  })
+
   const savePosts = (newPosts: BlogPost[]) => {
     setPosts(newPosts)
     localStorage.setItem('eva_spa_admin_blog_posts', JSON.stringify(newPosts))
+    ;(async () => {
+      // upsert đủ bài hiện có; xóa các bài bị delete (id không còn trong danh sách)
+      const slugs = newPosts.map((p) => p.seoData.slug || p.id)
+      const { error } = await supabase.from('blog_posts').upsert(newPosts.map(toRow), { onConflict: 'slug' })
+      if (error) toast.error('Không thể lưu blog vào Supabase: ' + error.message)
+      else await supabase.from('blog_posts').delete().not('slug', 'in', `(${slugs.map((s) => `'${s}'`).join(',')})`)
+    })()
   }
+
+  // Lần mở tab đầu: đọc blog_posts về (gộp theo slug lên trên cache/seeds)
+  useEffect(() => {
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('slug,title,category,excerpt,content,image_url,views,read_time,date_label,author,meta_title,meta_description,focus_keyword,published_at,created_at')
+        .order('created_at', { ascending: true })
+      if (error || !data || data.length === 0) return
+      const rows: BlogPost[] = data.map((r: any) => ({
+        id: r.slug,
+        title: r.title,
+        category: r.category || 'Cẩm Nang Dưỡng Sinh',
+        excerpt: r.excerpt || '',
+        content: r.content || '',
+        featuredImage: r.image_url || '',
+        status: r.published_at ? 'published' : 'draft',
+        views: r.views ?? 0,
+        readTime: r.read_time || '5 phút đọc',
+        date: r.date_label || new Date(r.created_at || Date.now()).toLocaleDateString('vi-VN'),
+        author: r.author || 'Eva Spa',
+        seoData: {
+          metaTitle: r.meta_title || r.title,
+          metaDescription: r.meta_description || (r.excerpt || '').slice(0, 150),
+          focusKeyword: r.focus_keyword || '',
+          slug: r.slug,
+        },
+      }))
+      setPosts(rows)
+      localStorage.setItem('eva_spa_admin_blog_posts', JSON.stringify(rows))
+    })()
+  }, [])
 
   // Calculate SEO score for badge
   const calculateSeoScore = (post: BlogPost) => {

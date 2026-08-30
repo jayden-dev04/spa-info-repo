@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, User, ArrowLeft, Share2, Sparkles, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { BLOG_SEEDS } from '@/lib/blogSeeds'
 import { toast } from 'sonner'
 
 const DEFAULT_BLOG_DETAILS: Record<string, any> = {
@@ -81,7 +82,7 @@ export default function BlogDetail() {
       try {
         if (slug) {
           const { data, error } = await supabase
-            .from('blogs')
+            .from('blog_posts')
             .select('*')
             .eq('slug', slug)
             .single()
@@ -89,12 +90,13 @@ export default function BlogDetail() {
           if (!error && data) {
             setPost({
               title: data.title,
-              category: 'Dưỡng Sinh & Sức Khỏe',
-              date: new Date(data.created_at || data.published_at || Date.now()).toLocaleDateString('vi-VN'),
-              readTime: '5 phút đọc',
-              author: 'Eva Spa',
+              category: data.category || 'Dưỡng Sinh & Sức Khỏe',
+              date: data.date_label || new Date(data.published_at || data.created_at || Date.now()).toLocaleDateString('vi-VN'),
+              readTime: data.read_time || '5 phút đọc',
+              author: data.author || 'Eva Spa',
               featuredImage: data.image_url || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
               content: data.content,
+              excerpt: data.excerpt || undefined,
             })
             setLoading(false)
             return
@@ -118,6 +120,20 @@ export default function BlogDetail() {
             setLoading(false)
             return
           }
+        }
+        const seeded = BLOG_SEEDS.find((p) => p.seoData.slug === slug || p.id === slug)
+        if (seeded) {
+          setPost({
+            title: seeded.title,
+            category: seeded.category,
+            date: seeded.date,
+            readTime: seeded.readTime,
+            author: seeded.author,
+            featuredImage: seeded.featuredImage,
+            content: seeded.content,
+          })
+          setLoading(false)
+          return
         }
 
         if (slug && DEFAULT_BLOG_DETAILS[slug]) {

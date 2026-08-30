@@ -1,0 +1,138 @@
+import type { BlogPost } from '@/pages/admin/components/BlogEditorView'
+
+/**
+ * 14 bài blog SEO chuẩn — nguồn dữ liệu DUY NHẤT:
+ *  - Admin BlogTab khởi tạo từ đây (và admin có thể sửa/xóa, lưu Supabase)
+ *  - Scripts/seed-blog-posts.mjs sinh SQL seed vào public.blog_posts
+ *  - Khách (Blog/BlogDetail) đọc từ Supabase blog_posts trước, fallback qua đây
+ */
+const IMG = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=80`
+
+export const BLOG_SEEDS: BlogPost[] = [
+  {
+    id: 'blog-1', title: 'Bí Quyết Gội Đầu Dưỡng Sinh Bằng Bồ Kết & Vỏ Bưởi Tươi Giúp Giảm Rụng Tóc',
+    category: 'Chăm Sóc & Trẻ Hóa Da',
+    excerpt: 'Khám phá công dụng kỳ diệu của thảo mộc tự nhiên trong việc làm sạch sâu nang tóc, trị gàu nấm và kích thích mọc tóc dày mượt tự nhiên.',
+    content: '<h2>1. Công dụng của bồ kết nguyên chất</h2><p>Bồ kết chứa hàm lượng lớn saponin — chất tạo bọt tự nhiên có khả năng kháng khuẩn, kháng nấm, làm sạch da đầu mà không bào mòn lớp dầu bảo vệ như sulfate trong dầu gội công nghiệp.</p><h2>2. Tinh dầu vỏ bưởi kích thích mọc tóc</h2><p>Tinh dầu vỏ bưởi giàu limonene giúp tăng tuần hoàn máu dưới da đầu, đánh thức các nang tóc đang "ngủ", từ đó giảm rõ rệt tình trạng rụng tóc sau 4–6 tuần gội đều.</p><h2>3. Quy trình gội đầu dưỡng sinh chuẩn Eva Spa</h2><p>Bước 1: làm ẩm tóc, xả nước bồ kết nấu ấm. Bước 2: massage bấm huyệt vùng đầu 10 phút. Bước 3: hấp dầu vỏ bưởi 15 phút bằng khăn nóng. Bước 4: xả sạch và sấy mát.</p><p><strong>Lưu ý:</strong> nên gội bằng bồ kết 2–3 lần/tuần, kết hợp uống trà hoa cúc kỷ tử để dưỡng sinh từ bên trong.</p>',
+    featuredImage: IMG('photo-1540555700478-4be289fbecef'),
+    status: 'published', views: 1420, readTime: '4 phút đọc', date: '15/08/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Gội đầu dưỡng sinh bồ kết vỏ bưởi giảm rụng tóc | Eva Spa', metaDescription: 'Hướng dẫn gội đầu dưỡng sinh bằng bồ kết và vỏ bưởi tươi: sạch gàu, giảm rụng tóc, kích thích mọc tóc. Đặt lịch gội đầu dưỡng sinh tại Eva Spa Cần Thơ.', focusKeyword: 'gội đầu dưỡng sinh bồ kết', slug: 'goi-dau-duong-sinh-bo-ket-giam-rung-toc' },
+  },
+  {
+    id: 'blog-2', title: 'Tại Sao Ấn Huyệt Vùng Cổ Vai Gáy Lại Giúp Cải Thiện Giấc Ngủ Sâu?',
+    category: 'Dưỡng Sinh & Trị Liệu',
+    excerpt: 'Huyệt Phong Trì, Kiên Tỉnh và Đại Chùy khi được đả thông đúng cách sẽ giúp giải phóng chèn ép dây thần kinh, đưa oxy lên não nhanh chóng.',
+    content: '<h2>1. Căn nguyên gây mất ngủ từ tắc nghẽn kinh lạc</h2><p>Lối sống văn phòng ngồi nhiều khiến các cơ thang và cơ ức đòn chũm co cứng, chèn ép mạch máu nuôi não. Não thiếu oxy về đêm là nguyên nhân hàng đầu của chứng khó ngủ, ngủ mê và thức dậy mệt mỏi.</p><h2>2. Ba huyệt đạo quan trọng</h2><p><strong>Phong Trì</strong> (sau gáy): thư giãn thần kinh trung ương, giảm đau đầu do căng thẳng. <strong>Kiên Tỉnh</strong> (đỉnh vai): giải tỏa căng cứng vai gáy kinh niên. <strong>Đại Chùy</strong> (đốt sống C7): giáng "hỏa", calm thần kinh giao cảm ban đêm.</p><h2>3. Liệu trình ấn huyệt 30 phút tại Eva Spa</h2><p>Kỹ thuật viên dùng đầu ngón cái day ấn lực sâu, chậm, kết hợp tinh dầu hương nhu ấm. Đại đa số khách ngủ thiếp đi ngay trong liệu trình — đó chính là dấu hiệu hệ thần kinh phó giao cảm được kích hoạt.</p>',
+    featuredImage: IMG('photo-1600334129128-685c5582fd35'),
+    status: 'published', views: 980, readTime: '6 phút đọc', date: '12/08/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Ấn huyệt cổ vai gáy trị mất ngủ tại Cần Thơ | Eva Spa', metaDescription: 'Giải thích vì sao ấn huyệt Phong Trì, Kiên Tỉnh, Đại Chùy giúp ngủ sâu và hướng dẫn liệu trình 30 phút tại Eva Spa.', focusKeyword: 'ấn huyệt cổ vai gáy mất ngủ', slug: 'an-huyet-co-vai-gay-tri-mat-ngu' },
+  },
+  {
+    id: 'blog-3', title: 'Xông Hơi Thảo Dược Giải Cảm Và Thanh Lọc Độc Tố Cơ Thể Đúng Cách',
+    category: 'Kiến Thức Thảo Mộc',
+    excerpt: 'Hướng dẫn các bước xông hơi với lá sả, tía tô, ngải cứu và hương nhu giúp da dẻ hồng hào, tăng cường hệ miễn dịch.',
+    content: '<h2>1. Vì sao xông hơi "bài độc" hiệu quả?</h2><p>Hơi nước nóng 42–48°C làm giãn mao mạch, mở lỗ chân lông, tuyến mồ hôi hoạt động mạnh đào thải muối thừa và kim loại nặng. Tinh dầu từ sả – tía tô – ngải cứu theo đường hô hấp vào phế quản, long đờm và sát khuẩn.</p><h2>2. Bài xông chuẩn Hoàng Cung</h2><p>1 nắm lá sả đập dập + 1 nắm tía tô + 1 nắm ngải cứu + 1 nhánh gừng nướng, đun sôi 10 phút. Xông 12–15 phút, trùm khăn lớn, cách mặt 30cm.</p><h2>3. Những lỗi thường gặp</h2><p>Không xông khi sốt cao trên 39°C, sau khi ăn no, hoặc khi đang mang thai. Sau xông phải lau khô, uống 200ml nước ấm pha chanh muối, tuyệt đối không tắm lạnh ngay.</p>',
+    featuredImage: IMG('photo-1512290900672-1f4869851604'),
+    status: 'published', views: 1250, readTime: '5 phút đọc', date: '08/08/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Xông hơi thảo dược giải cảm thanh lọc cơ thể | Eva Spa', metaDescription: 'Bài xông hơi sả tía tô ngải cứu giải cảm, thanh lọc độc tố đúng cách: nhiệt độ, thời gian và chống chỉ định.', focusKeyword: 'xông hơi thảo dược giải cảm', slug: 'xong-hoi-thao-duoc-giai-cam-thanh-loc-doc-to' },
+  },
+  {
+    id: 'blog-4', title: 'Massage Body Đá Nóng Himalaya: Liệu Pháp "Vàng" Cho Người Đau Mỏi Kinh Niên',
+    category: 'Dưỡng Sinh & Trị Liệu',
+    excerpt: 'Nhiệt độ giữ lâu của đá muối Himalaya kết hợp tinh dầu tràm giúp tan điểm trigger cơ, cải thiện tuần hoàn và giảm đau lưng dưới rõ rệt.',
+    content: '<h2>1. Cơ chế nhiệt + khoáng</h2><p>Đá muối Himalaya có độ tinh khiết trên 95% với 84 khoáng chất vi lượng. Khi được làm ấm 50–60°C, đá phóng nhiệt sâu vào lớp cơ 3–5cm — gấp 3 lần chườm khăn nóng thông thường.</p><h2>2. Đá nóng hợp với ai?</h2><p>Dân văn phòng đau thắt lưng dưới, người chơi thể thao giãn cơ, phụ nữ sau sinh đau vai gáy bế con, người hay bị lạnh chân tay vào mùa mưa.</p><h2>3. Đối chiếu hiệu quả sau 1 liệu trình 6 buổi</h2><p>Khách Eva Spa ghi nhận điểm đau (thang VAS) trung bình giảm từ 6.8 xuống 2.4 sau 6 buổi cách nhau 5–7 ngày, đi kèm giấc ngủ cải thiện.</p>',
+    featuredImage: IMG('photo-1544161515-4ab6ce6db874'),
+    status: 'published', views: 860, readTime: '6 phút đọc', date: '05/08/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Massage body đá nóng Himalaya giảm đau mỏi | Eva Spa', metaDescription: 'Đá muối Himalaya phóng nhiệt sâu giúp tan điểm trigger cơ, giảm đau lưng dưới. Đặt massage đá nóng tại Eva Spa Cần Thơ.', focusKeyword: 'massage body đá nóng', slug: 'massage-body-da-nong-himalaya' },
+  },
+  {
+    id: 'blog-5', title: 'Rau Má (Centella Asiatica) Và Cơ Chế Làm Lành Mụn Trong 14 Ngày',
+    category: 'Chăm Sóc & Trẻ Hóa Da',
+    excerpt: 'Asiaticoside trong rau má kích thích tổng hợp collagen type I, rút ngắn chu trình tái tạo biểu bì sau mụn — nghiên cứu và cách dùng đúng.',
+    content: '<h2>1. Hoạt chất được y văn công nhận</h2><p>Bộ ba tropane-free triterpenoid — asiaticoside, madecassoside và asiatic acid — được chứng minh lâm sàng thúc đẩy nguyên bào sợi sản sinh collagen type I, đồng thời kháng viêm mạnh, giảm đỏ sau mụn viêm.</p><h2>2. Chu trình 14 ngày thực tế</h2><p>Ngày 1–3: giảm đỏ, giảm cảm giác châm chích. Ngày 4–7: nhân mụn khô cồi, tróc nhẹ. Ngày 8–14: vết thâm mới nhạt dần, nền da căng hơn nhờ hàng rào ẩm phục hồi.</p><h2>3. Kết hợp mặt nạ rau má hoa cúc tại spa</h2><p>Mặt nạ lạnh rau má sau bước lấy nhân mụn chuyên sâu giúp đóng "van viêm" tức thì. Dùng serum rau má buổi tối và kem chống nắng vật lý buổi sáng để thâm không sậm lại.</p>',
+    featuredImage: IMG('photo-1596178065887-1198b6148b2b'),
+    status: 'published', views: 1130, readTime: '7 phút đọc', date: '02/08/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Rau má trị mụn lành da trong 14 ngày | Eva Spa', metaDescription: 'Asiaticoside rau má kích thích collagen lành mụn: cơ chế, lộ trình 14 ngày và cách kết hợp mặt nạ rau má hoa cúc.', focusKeyword: 'serum rau má trị mụn', slug: 'rau-ma-lam-lanh-mun-14-ngay' },
+  },
+  {
+    id: 'blog-6', title: 'Ngâm Chân Nước Muối Thảo Dược Trước Khi Ngủ: Thói Quen 15 Phút Đổi Giấc Ngủ',
+    category: 'Kiến Thức Thảo Mộc',
+    excerpt: 'Nước muối hồng 40°C pha gừng sả ngải cứu dẫn máu dồn xuống chi dưới, hạ nhịp tim, đưa cơ thể vào trạng thái nghỉ — cách pha chuẩn tỷ lệ.',
+    content: '<h2>1. "Dẫn huyết giáng hỏa" theo Đông y</h2><p>Khi não làm việc liên tục buổi tối, khí huyết dồn lên đầu gây trằn trọc. Ngâm chân nước ấm làm mạch máu chân giãn, kéo dòng máu khỏi vùng đầu, nhịp tim chậm lại — cơ thể nhận tín hiệu "đến giờ ngủ".</p><h2>2. Công thức ngâm chuẩn</h2><p>5 lít nước 40–42°C + 2 thìa muối hồng Himalaya + 1 lát gừng dập + 1 nắm ngải cứu khô. Ngâm 15–20 phút đến khi trán lấm tấm mồ hôi. Massage lòng bàn chân 2 phút sau khi ngâm.</p><h2>3. Chống chỉ định</h2><p>Người loét da bàn chân, giãn tĩnh mạch nặng, tiểu đường biến chứng thần kinh cảm giác, và trẻ dưới 6 tuổi không nên ngâm nước nóng lâu.</p>',
+    featuredImage: IMG('photo-1515377905703-c4788e51af15'),
+    status: 'published', views: 760, readTime: '5 phút đọc', date: '28/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Ngâm chân muối thảo dược ngủ ngon | Eva Spa', metaDescription: 'Tỷ lệ ngâm chân nước muối gừng sả ngải cứu 15 phút trước ngủ: cơ chế dẫn huyết, nhiệt độ chuẩn và chống chỉ định.', focusKeyword: 'ngâm chân thảo dược ngủ ngon', slug: 'ngam-chan-muoi-thao-duoc-ngu-ngon' },
+  },
+  {
+    id: 'blog-7', title: 'Spa Cần Thơ nào uy tín? 7 Tiêu Chí Vàng Tự Kiểm Tra Trước Khi Đặt Lịch',
+    category: 'Cẩm Nang Dưỡng Sinh',
+    excerpt: 'Từ giấy phép, chứng chỉ kỹ thuật viên, nguồn gốc tinh dầu đến chính sách đặt lịch — checklist 7 điểm giúp bạn tránh "spa hiệu ứng mạng xã hội".',
+    content: '<h2>1. Pháp lý và y tế</h2><p>Spa trị liệu cần giấy chứng nhận đủ điều kiện kinh doanh dịch vụ massage, kỹ thuật viên có chứng chỉ hành nghề. Đừng ngại hỏi xem bản photo treo ở lễ tân.</p><h2>2. Tinh dầu và sản phẩm</h2><p>Hãy yêu cầu xem hạn dùng và nguồn gốc tinh dầu. Spa uy tín công khai thương hiệu và không pha hương liệu tổng giá rẻ.</p><h2>3. Trải nghiệm thật</h2><p>Đọc review trên Google Maps (lọc review có ảnh), đặt 1 suất ngắn trước khi mua gói dài. Chính sách đổi/hủy lịch rõ ràng là dấu hiệu của nơi làm việc chuyên nghiệp.</p><h2>4–7. Khăn – khăn – khăn</h2><p>Khăn phải đổi theo khách, ga giường đổi theo ca, phòng xông có đồng hồ nhiệt, và khu rửa dụng cụ tiệt trùng nhìn thấy được.</p>',
+    featuredImage: IMG('photo-1512290900672-1f4869851604'),
+    status: 'published', views: 2210, readTime: '8 phút đọc', date: '25/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Review spa Cần Thơ uy tín: checklist 7 tiêu chí | Eva Spa', metaDescription: 'Checklist 7 tiêu chí chọn spa Cần Thơ uy tín: giấy phép, chứng chỉ KTV, tinh dầu gốc, khăn khăn khăn.', focusKeyword: 'spa Cần Thơ uy tín', slug: 'review-spa-can-tho-uy-tin' },
+  },
+  {
+    id: 'blog-8', title: 'Trà Hoa Cúc Kỷ Tử: Bài Thuốc "Mát Gan Sáng Mắt" Cho Người Thức Khuya',
+    category: 'Dưỡng Sinh Bên Trong',
+    excerpt: 'Phân tích thành phần apigenin, zeaxanthin trong cúc – kỷ và cách hãm trà đúng nhiệt độ để không phá hủy hoạt chất.',
+    content: '<h2>1. Cặp bài tập "thanh can minh mục"</h2><p>Trong y học cổ truyền, hoa cúc vị cay ngọt tính mát quy kinh can — tiêu viêm, sáng mắt. Kỷ tử (cà gai) bổ can thận, chứa zeaxanthin — carotenoid tập trung ở điểm vàng của mắt.</p><h2>2. Nhiệt độ hãm quyết định chất lượng</h2><p>Nước 80–85°C là điểm tối ưu: apigenin tan tốt mà không bị thủy phân. Nước sôi 100°C làm trà đục, vị chát; nước dưới 70°C không chiết xuất được.</p><h2>3. Liều dùng hợp lý</h2><p>2–3 gói/ngày sau ăn. Người huyết áp thấp nên thêm 2 quả táo đỏ. Không uống trà cúc đặc sau 20h tối vì lợi tiểu nhẹ, dễ thức giấc.</p>',
+    featuredImage: IMG('photo-1544787219-7f47ccb76574'),
+    status: 'published', views: 640, readTime: '5 phút đọc', date: '20/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Trà hoa cúc kỷ tử sáng mắt mát gan | Eva Spa', metaDescription: 'Nhiệt độ hãm 80°C giữ apigenin: lợi ích trà hoa cúc kỷ tử cho người thức khuya, liều dùng và lưu ý huyết áp thấp.', focusKeyword: 'trà hoa cúc kỷ tử', slug: 'tra-hoa-cuc-ky-tu-thuc-khuya' },
+  },
+  {
+    id: 'blog-9', title: 'Dưỡng Da Bằng Nghệ + Linh Chi: Cơ Chế Nano Curcumin Xóa Thâm Sau Mụn',
+    category: 'Chăm Sóc & Trẻ Hóa Da',
+    excerpt: 'Nghệ tươi bôi trực tiếp kém hiệu quả gấp 180 lần nano curcumin. Vì sao tinh chất linh chi làm tăng khả năng chống oxy hóa của kem đêm.',
+    content: '<h2>1. Vì sao nghệ tươi không đủ mạnh?</h2><p>Curcumin tự nhiên phân tử lớn, khó thấm biểu bì và bị ánh sáng phân hủy nhanh. Kích thước nano 50–100nm cộng lớp bọc lecithin giúp thấm sâu gấp nhiều lần, đạt nồng độ ức chế men tyrosinase hình thành thâm.</p><h2>2. Linh chi "khuếch đại" chống oxy hóa</h2><p>Triterpenoid và polysaccharide trong nấm linh chi tăng hoạt tính SOD nội sinh của da — hàng rào tự nhiên chống gốc tự do từ khói xe và UV, giảm sạm lan tỏa.</p><h2>3. Routine kem nghệ linh chi buổi tối</h2><p>Rửa mặt dịu nhẹ → toner hoa hồng → serum → kem nghệ linh chi đêm. Ban ngày bắt buộc dùng chống nắng vật lý SPF 50+, nếu không thâm sẽ sậm trở lại trong 1 tuần.</p>',
+    featuredImage: IMG('photo-1620916566398-39f1143ab7be'),
+    status: 'published', views: 910, readTime: '6 phút đọc', date: '16/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Kem nghệ nano curcumin + linh chi mờ thâm | Eva Spa', metaDescription: 'Nano curcumin thấm gấp 180 lần nghệ tươi; linh chi tăng SOD. Routine kem nghệ linh chi mờ thâm sau mụn.', focusKeyword: 'kem nghệ mờ thâm', slug: 'kem-nghe-linh-chi-mo-tham' },
+  },
+  {
+    id: 'blog-10', title: 'Gói Combo Gội Đầu + Massage Body: Chiến Lược "Sạch Sâu – Thả Trôi" 90 Phút',
+    category: 'Cẩm Nang Dưỡng Sinh',
+    excerpt: 'Vì sao liệu trình 2 dịch vụ nối tiếp rẻ hơn đặt lẻ mà còn tăng hiệu quả thư giãn: thứ tự làm sạch trước – trị liệu sau và nhịp massage chuẩn.',
+    content: '<h2>1. Đặt trước – sau theo nhịp sinh học</h2><p>Gội đầu dưỡng sinh làm nhẹ người, tăng tuần hoàn đầu; massage body sau đó đưa cơ thể vào nhịp alpha. Trải nghiệm ngược (massage trước, gội sau) dễ mất hiệu ứng ru ngủ.</p><h2>2. Kinh tế hơn đặt lẻ</h2><p>Combo ghép chung 1 kỹ thuật viên và 1 ca phòng nên Eva Spa giảm 15–20% so với đặt lẻ 2 dịch vụ, thời gian chờ bằng 0.</p><h2>3. Sau combo nên làm gì?</h2><p>Uống trà gừng mật ong ấm tại phòng chờ, tránh nắng gắt 2 giờ đầu, và đặt lịch nhắc mỗi 2–3 tuần để giữ chu kỳ ngủ đều.</p>',
+    featuredImage: IMG('photo-1571781926291-c477ebfd024b'),
+    status: 'published', views: 720, readTime: '4 phút đọc', date: '12/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Combo gội đầu dưỡng sinh + massage body giá tốt | Eva Spa', metaDescription: 'Vì sao combo gội đầu + massage body 90 phút hiệu quả và rẻ hơn đặt lẻ. Đặt combo dưỡng sinh tại Eva Spa Cần Thơ.', focusKeyword: 'combo gội đầu massage body', slug: 'combo-goi-dau-massage-body' },
+  },
+  {
+    id: 'blog-11', title: 'Body Scrub Cà Phê Đắk Lắk: Tẩy Tế Bào Chết Da Sáng Mịn Không bào Mòn',
+    category: 'Chăm Sóc Body',
+    excerpt: 'Cỡ hạt scrub 0.3–0.8mm là ngưỡng an toàn. Cách dùng scrub cà phê kèm dầu dừa để lại lớp màng ẩm thay vì gây khô ráp.',
+    content: '<h2>1. Hạt cà phê rang – lợi thế tự nhiên</h2><p>Bã cà phê rang có thành tế bào lignin cứng vừa đủ để ma sát nhẹ, caffeine tại chỗ hỗ trợ giảm phù nề mô và lưu thông máu vi tuần hoàn.</p><h2>2. Kỹ thuật thoa tránh tổn thương da</h2><p>Da ẩm, không chà quá 60 giây mỗi vùng, lực hai đầu ngón tay. Tuyệt đối không scrub vùng vảy nến, eczema đang viêm, hoặc sau wax 48 giờ.</p><h2>3. Khóa ẩm sau tẩy</h2><p>Trộn 1 thìa scrub với 1 thìa dầu dừa nguyên chất để lại màng lipid. Với da khô, dùng 1 lần/tuần; da dầu 2 lần/tuần.</p>',
+    featuredImage: IMG('photo-1587049352846-4a222e784d38'),
+    status: 'published', views: 530, readTime: '5 phút đọc', date: '08/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Body scrub cà phê Đắk Lắk tẩy da chết an toàn | Eva Spa', metaDescription: 'Cỡ hạt 0.3-0.8mm không bào mòn; trộn dầu dừa khóa ẩm. Cách dùng body scrub cà phê cho da sáng mịn.', focusKeyword: 'body scrub cà phê', slug: 'body-scrub-ca-phe-dak-lak' },
+  },
+  {
+    id: 'blog-12', title: 'Đau Vai Gáy Dân Văn Phòng: 5 Bài Vi Động 90 Giây Làm Tại Chỗ Bàn',
+    category: 'Dưỡng Sinh & Trị Liệu',
+    excerpt: 'Nghiêng đầu đối kháng, xoay ngực, kéo giãn cơ thang trên, gập cằm tạo "double chin", ép bả vai — combo 5 động tác phá vỡ thế ngồi cúi.',
+    content: '<h2>1. Vì sao ngồi 8 giờ phá cổ trước tiên?</h2><p>Mỗi 2.5cm đầu nhô trước tạo thêm ~4.5kg lực lên cột sống cổ. Sau 8 giờ, cơ thang trên và cơ nâng vai bị "bẻ khóa" liên tục, sinh điểm đau lan xuống cánh tay.</p><h2>2. 5 bài vi động mỗi 90 giây</h2><p>(1) Nghiêng tai về vai đối diện, tay đối kháng nhẹ 20 giây hai bên. (2) Hai tay đan sau gáy, ưỡn ngực mở vai 5 nhịp thở. (3) Kéo giãn thang trên: ngồi ghế, tay nắm mép ghế. (4) Gập cằm tạo "double chin" giữ 10 giây x 5. (5) Ép 2 xương bả vai vào nhau 5 giây x 5.</p><h2>3. Khi nào cần trị liệu chuyên sâu?</h2><p>Tê lan xuống ngón tay, đau thức giấc ban đêm, hoặc đau kéo dài quá 3 tuần — nên đặt lịch ấn huyệt kết hợp chườm thảo dược để xử lý điểm trigger thật.</p>',
+    featuredImage: IMG('photo-1600334129128-685c5582fd35'),
+    status: 'published', views: 1890, readTime: '7 phút đọc', date: '03/07/2026', author: 'Eva Spa',
+    seoData: { metaTitle: '5 bài tập chữa đau vai gáy dân văn phòng | Eva Spa', metaDescription: '5 bài vi động 90 giây tại bàn phá thế ngồi cúi + dấu hiệu cần ấn huyệt cổ vai gáy chuyên sâu.', focusKeyword: 'bài tập đau vai gáy', slug: '5-bai-tap-dau-vai-gay-van-phong' },
+  },
+  {
+    id: 'blog-13', title: 'Kem Chống Nắng Vật Lý Thảo Mộc: Kẽm Oxit Khoáng Chất Và Kết Cấu Không Bết Dính',
+    category: 'Chăm Sóc & Trẻ Hóa Da',
+    excerpt: 'Công thức zinc oxide + titanium dioxide phủ thảo dược giảm vệt trắng, kèm ngưỡng SPF thực đo và lượng thoa chuẩn 2 ngón tay.',
+    content: '<h2>1. Hạt cà phê rang – lợi thế tự nhiên</h2><p>Bã cà phê rang có thành tế bào lignin cứng vừa đủ để ma sát nhẹ, caffeine tại chỗ hỗ trợ giảm phù nề mô và lưu thông máu vi tuần hoàn.</p><h2>2. Kỹ thuật thoa tránh tổn thương da</h2><p>Da ẩm, không chà quá 60 giây mỗi vùng, lực hai đầu ngón tay. Tuyệt đối không scrub vùng vảy nến, eczema đang viêm, hoặc sau wax 48 giờ.</p><h2>3. Khóa ẩm sau tẩy</h2><p>Trộn 1 thìa scrub với 1 thìa dầu dừa nguyên chất để lại màng lipid. Với da khô, dùng 1 lần/tuần; da dầu 2 lần/tuần.</p>',
+    featuredImage: IMG('photo-1556228720-195a672e8a03'),
+    status: 'published', views: 610, readTime: '6 phút đọc', date: '29/06/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Kem chống nắng vật lý thảo dược không bết | Eva Spa', metaDescription: 'Zinc oxide non-nano phủ lô hội trà xanh: cơ chế khoáng, lượng thoa 2 ngón tay và lịch dặm lại.', focusKeyword: 'kem chống nắng vật lý', slug: 'kem-chong-nang-vat-ly-thao-moc' },
+  },
+  {
+    id: 'blog-14', title: 'Combo Quà Tặng Dưỡng Sinh Hoàng Cung: Set Spa Tại Nhà Cho Người Bạn Thương',
+    category: 'Cẩm Nang Dưỡng Sinh',
+    excerpt: 'Gợi ý set quà 4 món muối ngâm chân – túi chườm vai gáy – trà cúc kỷ tử – cao gừng: câu chuyện Hoàng Cung và cách gói tặng tinh tế.',
+    content: '<h2>1. Lấy cảm hứng từ Thái Y Viện</h2><p>Những bài ngâm chân, chườm ngải cứu và trà dưỡng hoa từng dành cho cung phi được Eva Spa số hóa thành set quà dùng ngay tại nhà, kèm hướng dẫn ghi từng nhiệt độ – thời lượng.</p><h2>2. Bốn món trong một hộp</h2><p>Muối hồng Himalaya pha sả ngải; túi thảo dược chườm vai gáy quay vi sóng; trà cúc kỷ tử 30 gói; cao gừng mật ong. Mỗi món kèm 1 thẻ hướng dẫn nhỏ màu pastel.</p><h2>3. Gợi ý dịp tặng</h2><p>Sinh nhật mẹ và chị, cảm ơn đối tác cuối năm, quà cưới cho người bạn vừa sinh — set dưỡng sinh luôn thiết thực hơn hoa và bánh.</p>',
+    featuredImage: IMG('photo-1596178065887-1198b6148b2b'),
+    status: 'published', views: 480, readTime: '4 phút đọc', date: '24/06/2026', author: 'Eva Spa',
+    seoData: { metaTitle: 'Quà tặng dưỡng sinh Hoàng Cung cho mẹ và chị | Eva Spa', metaDescription: 'Set 4 món dưỡng sinh tại nhà: muối ngâm chân, túi chườm, trà cúc kỷ tử, cao gừng. Gợi ý quà tinh tế tại Eva Spa.', focusKeyword: 'quà tặng dưỡng sinh', slug: 'qua-tang-duong-sinh-hoang-cung' },
+  },
+]

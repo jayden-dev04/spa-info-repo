@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 
 export interface CartItem {
   id: string | number
@@ -23,7 +24,47 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-const CART_STORAGE_KEY = 'eva_spa_shopping_cart'
+// Cache offline (giữ UX tức thì) — NGUỒN SỰ THẬT là bảng public.cart_items
+const CART_STORAGE_KEY = '***'
+const CART_SESSION_KEY = '***'
+
+function getCartSessionKey(): string {
+  try {
+    let k = localStorage.getItem(CART_SESSION_KEY)
+    if (!k) {
+      k = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(36).slice(2)
+      localStorage.setItem(CART_SESSION_KEY, k)
+    }
+    return k
+  } catch {
+    return 'no-storage'
+  }
+}
+
+function rowToItem(r: any): CartItem {
+  return {
+    id: r.product_id,
+    name: r.product_name,
+    price: Number(r.price),
+    imageUrl: r.image_url || '',
+    quantity: r.quantity,
+  }
+}
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession()
+    return data.session?.user?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Ghi bảng cart_items (Supabase) — fire-and-forget, local không phụ thuộc mạng.
+ *  Các builder PostgREST thenable-but-not-Promise → await trong async wrapper. */
+async function dbWrite(fn: () => unknown) {
+  try { await fn() } catch (e) { console.warn('cart_items sync lỗi (giữ local):', e) }
+}
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -35,12 +76,94 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   })
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const hydrated = useRef(false)
+
+  // 1) hydrate từ Supabase cart_items (theo user_id nếu đã đăng nhập,
+  //    nếu không theo session_key của khách)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const sessionKey = getCartSessionKey()
+      const uid = await currentUserId()
+      const q = supabase
+        .from('cart_items')
+        .select('product_id, product_name, price, image_url, quantity')
+      const res = uid
+        ? await q.eq('user_id', uid).order('updated_at', { ascending: true })
+        : await q.eq('session_key', sessionKey).order('updated_at', { ascending: true })
+      if (cancelled || res.error) {
+        if (res.error) console.warn('cart_items unreadable, giữ local:', res.error.message)
+        return
+      }
+      const rows = (res.data || []).map(rowToItem)
+      if (rows.length > 0) {
+        setCart(rows)
+        if (!uid) {
+          // khách đổi máy khác: session_key mới trống → nhận local cũ lên DB
+          for (const localItem of JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]')) {
+            dbWrite(() =>
+              supabase.from('cart_items').upsert(
+                { session_key: sessionKey, user_id: null, product_id: String(localItem.id), product_name: localItem.name, price: localItem.price, image_url: localItem.imageUrl, quantity: localItem.quantity },
+                { onConflict: 'session_key,product_id' },
+              ),
+            )
+          }
+        }
+      } else {
+        // DB trống (bảng vừa tạo): đẩy local hiện có lên DB
+        const local: CartItem[] = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]')
+        for (const it of local) {
+          dbWrite(() =>
+            supabase.from('cart_items').upsert(
+              { session_key: sessionKey, user_id: uid, product_id: String(it.id), product_name: it.name, price: it.price, image_url: it.imageUrl, quantity: it.quantity },
+              { onConflict: 'session_key,product_id' },
+            ),
+          )
+        }
+      }
+      hydrated.current = true
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  // 2) phản chiếu mọi thay đổi local -> DB + cache localStorage
+  const syncRow = useCallback((item: CartItem) => {
+    const sessionKey = getCartSessionKey()
+    currentUserId().then((uid) =>
+      dbWrite(() =>
+        supabase.from('cart_items').upsert(
+          { session_key: sessionKey, user_id: uid, product_id: String(item.id), product_name: item.name, price: item.price, image_url: item.imageUrl, quantity: item.quantity, updated_at: new Date().toISOString() },
+          { onConflict: 'session_key,product_id' },
+        ),
+      ),
+    )
+  }, [])
+
+  const deleteRow = useCallback((productId: string | number) => {
+    const sessionKey = getCartSessionKey()
+    currentUserId().then(() =>
+      dbWrite(() =>
+        supabase
+          .from('cart_items')
+          .delete()
+          .eq('session_key', sessionKey)
+          .eq('product_id', String(productId)),
+      ),
+    )
+  }, [])
+
+  const wipeRows = useCallback(() => {
+    const sessionKey = getCartSessionKey()
+    currentUserId().then(() => {
+      dbWrite(() => supabase.from('cart_items').delete().eq('session_key', sessionKey))
+    })
+  }, [])
 
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
     } catch (e) {
-      console.error('Không thể lưu giỏ hàng vào localStorage:', e)
+      console.error('Không thể cache giỏ hàng:', e)
     }
   }, [cart])
 
@@ -48,32 +171,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     product: { id: string | number; name: string; price: number; imageUrl: string; category?: string },
     quantity = 1
   ) => {
+    let merged: CartItem | null = null
     setCart((prev) => {
       const existing = prev.find((item) => String(item.id) === String(product.id))
       if (existing) {
+        merged = { ...existing, quantity: existing.quantity + quantity }
         return prev.map((item) =>
-          String(item.id) === String(product.id)
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+          String(item.id) === String(product.id) ? merged! : item
         )
       }
-      return [
-        ...prev,
-        {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          imageUrl: product.imageUrl,
-          category: product.category,
-          quantity,
-        },
-      ]
+      merged = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        category: product.category,
+        quantity,
+      }
+      return [...prev, merged]
     })
     setIsCartOpen(true)
+    // merged được gán đồng bộ trong updater → đồng bộ DB
+    queueMicrotask(() => merged && syncRow(merged))
   }
 
   const removeFromCart = (id: string | number) => {
     setCart((prev) => prev.filter((item) => String(item.id) !== String(id)))
+    deleteRow(id)
   }
 
   const updateQuantity = (id: string | number, quantity: number) => {
@@ -81,11 +205,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromCart(id)
       return
     }
-    setCart((prev) =>
-      prev.map((item) =>
+    setCart((prev) => {
+      const item = prev.find((i) => String(i.id) === String(id))
+      if (item) syncRow({ ...item, quantity })
+      return prev.map((item) =>
         String(item.id) === String(id) ? { ...item, quantity } : item
       )
-    )
+    })
   }
 
   const clearCart = () => {
@@ -93,6 +219,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.removeItem(CART_STORAGE_KEY)
     } catch {}
+    wipeRows()
   }
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Leaf, Calendar, ArrowRight, BookOpen, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { BLOG_SEEDS } from '@/lib/blogSeeds'
 
 const DEFAULT_POSTS = [
   { 
@@ -48,8 +49,8 @@ export default function Blog() {
     async function fetchBlogs() {
       try {
         const { data, error } = await supabase
-          .from('blogs')
-          .select('*')
+          .from('blog_posts')
+          .select('id,slug,title,category,excerpt,image_url,date_label,read_time,published_at,created_at')
           .order('created_at', { ascending: false })
 
         if (!error && data && data.length > 0) {
@@ -57,14 +58,30 @@ export default function Blog() {
             id: b.id,
             slug: b.slug || b.id,
             title: b.title,
-            category: 'Cẩm Nang Dưỡng Sinh',
-            excerpt: b.seo_description || (b.content?.replace(/<[^>]*>?/gm, '').substring(0, 140) + '...'),
+            category: b.category || 'Cẩm Nang Dưỡng Sinh',
+            excerpt: b.excerpt || (b.content?.replace(/<[^>]*>?/gm, '').substring(0, 140) + '...'),
             featuredImage: b.image_url || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
-            date: new Date(b.created_at || Date.now()).toLocaleDateString('vi-VN'),
-            readTime: '5 phút đọc',
+            date: b.date_label || new Date(b.published_at || b.created_at || Date.now()).toLocaleDateString('vi-VN'),
+            readTime: b.read_time || '5 phút đọc',
             status: 'published',
           }))
           setPosts(mapped)
+          return
+        }
+
+        const seeded = BLOG_SEEDS.filter((p) => p.status === 'published').map((p) => ({
+          id: p.id,
+          slug: p.seoData.slug,
+          title: p.title,
+          category: p.category,
+          excerpt: p.excerpt,
+          featuredImage: p.featuredImage,
+          date: p.date,
+          readTime: p.readTime,
+          status: 'published',
+        }))
+        if (seeded.length > 0) {
+          setPosts(seeded)
           return
         }
 
