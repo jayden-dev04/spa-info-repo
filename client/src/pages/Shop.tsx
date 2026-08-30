@@ -212,7 +212,7 @@ export default function Shop() {
           {filteredProducts.map((p) => {
             const img = p.image_url || p.img || serumImg
             return (
-              <Card key={p.id} className="overflow-hidden group hover:shadow-md transition-shadow rounded-2xl border-border/80 py-0">
+              <Card key={p.id} className="overflow-hidden group hover:shadow-md transition-shadow rounded-2xl border-border/80 gap-0 py-0">
                 {/* Image & Badges */}
                 <div 
                   className="relative h-60 w-full bg-secondary/30 overflow-hidden cursor-pointer"

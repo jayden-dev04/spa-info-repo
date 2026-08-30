@@ -148,7 +148,7 @@ export default function Booking() {
                   id="service" 
                   name="service" 
                   required
-                  className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  className="flex h-9 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm placeholder:text-muted-foreground"
                 >
                   <option value="">-- Chọn gói dưỡng sinh / spa --</option>
                   {services.map((s) => (
@@ -161,11 +161,11 @@ export default function Booking() {
 
               <div className="space-y-2">
                 <Label htmlFor="notes" className="text-foreground/90 font-medium">Ghi chú đặc biệt (Nếu có)</Label>
-                <textarea 
-                  id="notes" 
+                <textarea
+                  id="notes"
+                  className="flex w-full min-w-0 rounded-xl border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm placeholder:text-muted-foreground"
                   name="notes" 
                   rows={3} 
-                  className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" 
                   placeholder="Ví dụ: Đau mỏi nhiều vùng cổ vai gáy, thích lực tay vừa phải, dị ứng mùi hương..."
                 ></textarea>
               </div>
