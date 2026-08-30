@@ -83,7 +83,7 @@ export default function PromoPopup() {
         }
       }, (activeConfig.delaySeconds || 1.5) * 1000)
     })()
-    return () => { cancelled = true; clearTimeout(timer as any) }
+    return () => { cancelled = true; if (timer !== null) clearTimeout(timer) }
   }, [])
 
   const handleClose = () => {
