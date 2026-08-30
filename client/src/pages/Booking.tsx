@@ -1,18 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Leaf, Calendar, Sparkles, CheckCircle2, PhoneCall, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { useActiveServices, type ServiceRow } from '@/lib/useActiveServices'
 import { API_BASE } from '@/lib/api'
-import { supabase } from '@/lib/supabase'
-
-type ServiceOption = { id: number; name: string; price: number; duration_minutes: number | null }
 
 // Giá fallback chỉ dùng khi Supabase services trả về rỗng — giá thật khớp
 // với seed_services.sql (id 1→5), không phải giá bịa.
-const FALLBACK_SERVICES: ServiceOption[] = [
+const FALLBACK_SERVICES: ServiceRow[] = [
   { id: 1, name: 'Gội Đầu Dưỡng Sinh Thảo Dược (60–75 phút)', price: 199000, duration_minutes: 70 },
   { id: 2, name: 'Chăm Sóc & Phục Hồi Da Thảo Mộc (75 phút)', price: 350000, duration_minutes: 75 },
   { id: 3, name: 'Massage Body Đá Nóng Himalaya (90 phút)', price: 420000, duration_minutes: 90 },
@@ -23,23 +21,7 @@ const FALLBACK_SERVICES: ServiceOption[] = [
 export default function Booking() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [services, setServices] = useState<ServiceOption[]>(FALLBACK_SERVICES)
-
-  // Danh sách liệu trình lấy thẳng từ bảng services (nguồn dữ liệu thật,
-  // dùng chung với trang Dịch Vụ + admin). Rỗng/lỗi -> giữ fallback.
-  useEffect(() => {
-    let cancelled = false
-    supabase
-      .from('services')
-      .select('id, name, price, duration_minutes')
-      .eq('is_active', true)
-      .order('id', { ascending: true })
-      .then(({ data, error }) => {
-        if (cancelled || error || !data || data.length === 0) return
-        setServices(data as ServiceOption[])
-      })
-    return () => { cancelled = true }
-  }, [])
+  const services = useActiveServices(FALLBACK_SERVICES)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

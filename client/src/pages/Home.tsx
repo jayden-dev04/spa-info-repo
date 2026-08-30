@@ -5,37 +5,45 @@ import heroImg from '@/assets/images/hero.jpg'
 import facialImg from '@/assets/images/service_facial.jpg'
 import lipsImg from '@/assets/images/service_lips.jpg'
 import massageImg from '@/assets/images/service_massage.jpg'
-
+import { useActiveServices, type ServiceRow } from '@/lib/useActiveServices'
 export default function Home() {
-  const services = [
-    {
-      title: 'Gội Đầu Dưỡng Sinh Thảo Dược',
+  const fallback: ServiceRow[] = [
+    { id: 1, name: 'Gội Đầu Dưỡng Sinh Thảo Dược', price: 199000, duration_minutes: 70 },
+    { id: 2, name: 'Chăm Sóc & Phục Hồi Da Thảo Mộc', price: 350000, duration_minutes: 75 },
+    { id: 3, name: 'Massage Body Đá Nóng Himalaya', price: 420000, duration_minutes: 90 },
+  ]
+  const dbServices = useActiveServices(fallback)
+
+  const extraByIndex: Record<number, { img: string; subtitle: string; desc: string; tag: string }> = {
+    0: {
+      img: massageImg,
       subtitle: 'Thư giãn vùng đầu & đả thông kinh lạc',
       desc: 'Nấu từ bồ kết, sả, vỏ bưởi tươi mỗi ngày kết hợp bài massage cổ vai gáy giải tỏa căng thẳng tức thì.',
-      duration: '60 - 75 Phút',
-      price: '199.000đ',
       tag: 'Được yêu thích nhất',
-      img: massageImg,
     },
-    {
-      title: 'Chăm Sóc & Phục Hồi Da Thảo Mộc',
+    1: {
+      img: facialImg,
       subtitle: 'Nuôi dưỡng làn da sáng khỏe tự nhiên',
       desc: 'Thanh lọc độc tố, cấp ẩm sâu với mặt nạ thảo dược hữu cơ và kỹ thuật massage nâng cơ trẻ hóa.',
-      duration: '75 Phút',
-      price: '350.000đ',
       tag: 'Thảo mộc 100%',
-      img: facialImg,
     },
-    {
-      title: 'Massage Body Đá Nóng Himalaya',
+    2: {
+      img: lipsImg,
       subtitle: 'Xua tan nhức mỏi toàn thân',
       desc: 'Nhiệt lượng từ đá muối khoáng Himalaya kết hợp tinh dầu trị liệu giúp lưu thông khí huyết, ngủ ngon giấc.',
-      duration: '90 Phút',
-      price: '420.000đ',
       tag: 'Trị liệu chuyên sâu',
-      img: lipsImg,
-    }
-  ]
+    },
+  }
+
+  const services = dbServices.slice(0, 3).map((s, i) => ({
+    title: s.name,
+    subtitle: extraByIndex[i]?.subtitle ?? '',
+    desc: extraByIndex[i]?.desc ?? '',
+    duration: s.duration_minutes ? `${s.duration_minutes} Phút` : '',
+    price: `${s.price.toLocaleString('vi-VN')}đ`,
+    tag: extraByIndex[i]?.tag ?? '',
+    img: extraByIndex[i]?.img ?? massageImg,
+  }))
 
   const highlights = [
     {
