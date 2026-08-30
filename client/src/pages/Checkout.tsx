@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { DEFAULT_POPUP_CONFIG } from '@/components/PromoPopup'
 
 // Danh sách ngân hàng chọn được — mỗi mã đơn gắn với MỘT tài khoản
 // VietQR thật (theo PROJECT_OVERVIEW), nên chọn ngân hàng chỉ đổi logo/
@@ -45,6 +46,10 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vietqr'>('vietqr')
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false)
+  // Mã giảm giá — khớp eva_spa_popup_config (admin PopupTab / banner Ưu đãi tháng này)
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
+  const [couponError, setCouponError] = useState('')
   const [selectedBank, setSelectedBank] = useState<(typeof BANK_OPTIONS)[number]['bankId']>('VietinBank')
   const [formData, setFormData] = useState({
     fullName: '',
@@ -56,6 +61,20 @@ export default function Checkout() {
     notes: '',
   })
 
+  // Coupon hợp lệ lấy từ cùng nguồn với banner: config popup admin (mặc định 'T7SPRING')
+  const activeCoupon = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('eva_spa_popup_config')
+      const parsed = saved ? JSON.parse(saved) : {}
+      // Config cũ (lưu trước khi có coupon mặc định) không được làm mất mã mặc định
+      const cfg = { ...DEFAULT_POPUP_CONFIG, ...parsed }
+      if (!cfg.couponCode && DEFAULT_POPUP_CONFIG.couponCode) cfg.couponCode = DEFAULT_POPUP_CONFIG.couponCode
+      return { code: (cfg.couponCode || '').toUpperCase(), label: cfg.couponLabel || 'Mã giảm giá' }
+    } catch {
+      return { code: (DEFAULT_POPUP_CONFIG.couponCode || '').toUpperCase(), label: DEFAULT_POPUP_CONFIG.couponLabel || 'Mã giảm giá' }
+    }
+  }, [])
+  const discount = appliedCoupon && appliedCoupon === activeCoupon.code ? Math.min(100000, Math.round(totalAmount * 0.1)) : 0
   // Redirect to shop if cart is empty
   if (cart.length === 0) {
     return (
@@ -76,8 +95,18 @@ export default function Checkout() {
     )
   }
 
+
   const shippingFee = totalAmount >= FREESHIP_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE
-  const finalTotal = totalAmount + shippingFee
+  const finalTotal = totalAmount + shippingFee - discount
+
+  const handleApplyCoupon = () => {
+    const code = couponInput.trim().toUpperCase()
+    if (!code) { setCouponError('Bạn chưa nhập mã giảm giá.'); return }
+    if (code !== activeCoupon.code) { setCouponError(`Mã "${code}" không hợp lệ hoặc đã hết hạn.`); return }
+    setCouponError('')
+    setAppliedCoupon(code)
+    toast.success('Áp dụng mã giảm giá thành công!', { description: 'Giảm 10% tối đa 100.000đ cho đơn này.' })
+  }
 
   // Mã đơn ổn định cho suốt phiên thanh toán — không đổi mỗi re-render —
   // dùng chung cho ảnh QR preview lẫn payload gửi backend.
@@ -119,8 +148,7 @@ export default function Checkout() {
       customer_address: fullAddress,
       total_amount: finalTotal,
       shipping_fee: shippingFee,
-      payment_method: paymentMethod,
-      notes: formData.notes,
+      notes: formData.notes + (appliedCoupon && discount > 0 ? `${formData.notes ? ' | ' : ''}[coupon:${appliedCoupon} -${discount.toLocaleString('vi-VN')}đ]` : ''),
       order_code: orderCode,
       items: cart.map((item) => ({
         product_id: item.id,
@@ -530,6 +558,37 @@ export default function Checkout() {
                   ))}
                 </div>
 
+                {/* Mã giảm giá */}
+                <div className="border-t border-border/60 pt-3">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="font-mono font-bold text-emerald-700">{appliedCoupon}</span>
+                        <span className="text-emerald-600">−{discount.toLocaleString('vi-VN')}đ</span>
+                      </div>
+                      <button type="button" onClick={() => { setAppliedCoupon(null); setCouponInput('') }} className="text-[11px] text-muted-foreground hover:text-destructive underline">
+                        Bỏ mã
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex gap-2">
+                        <Input
+                          value={couponInput}
+                          onChange={(e) => { setCouponInput(e.target.value); setCouponError('') }}
+                          placeholder={`Mã giảm giá (${activeCoupon.code || 'VD: T7SPRING'})`}
+                          className="h-9 rounded-xl"
+                        />
+                        <Button type="button" variant="outline" onClick={handleApplyCoupon} className="rounded-xl h-9 px-4 text-xs font-bold shrink-0">
+                          Áp dụng
+                        </Button>
+                      </div>
+                      {couponError && <p className="text-[11px] text-destructive font-medium">{couponError}</p>}
+                    </div>
+                  )}
+                </div>
+
                 {/* Totals */}
                 <div className="border-t border-border/60 pt-4 space-y-2 text-sm">
                   <div className="flex justify-between text-muted-foreground">
@@ -546,6 +605,12 @@ export default function Checkout() {
                       )}
                     </span>
                   </div>
+                  {appliedCoupon && discount > 0 && (
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Giảm giá ({appliedCoupon}):</span>
+                      <span>−{discount.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                  )}
                   {shippingFee === 0 && (
                     <p className="text-[11px] text-emerald-700 flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />

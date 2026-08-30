@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Link, NavLink, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { Leaf, Phone, MapPin, Clock, Sparkles, Heart, ShoppingBag, User } from 'lucide-react'
@@ -15,19 +16,35 @@ import BlogDetail from './pages/BlogDetail'
 import Account from './pages/Account'
 import AuthCallback from './pages/AuthCallback'
 import AdminPortalRoute from './pages/admin/AdminPortalRoute'
-import PromoPopup from './components/PromoPopup'
+import PromoPopup, { DEFAULT_POPUP_CONFIG } from './components/PromoPopup'
 import './index.css'
 
 function Navbar() {
   const { totalItems, setIsCartOpen } = useCart()
   const { user, setIsAuthModalOpen } = useAuth()
+  // Coupon tháng này — cùng nguồn eva_spa_popup_config với PopupTab (admin)
+  const bannerConfig = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('eva_spa_popup_config')
+      const cfg = saved ? { ...DEFAULT_POPUP_CONFIG, ...JSON.parse(saved) } : DEFAULT_POPUP_CONFIG
+      return { couponCode: cfg.couponCode || '', couponExpiresAt: cfg.couponExpiresAt || '' }
+    } catch {
+      return { couponCode: DEFAULT_POPUP_CONFIG.couponCode || '', couponExpiresAt: DEFAULT_POPUP_CONFIG.couponExpiresAt || '' }
+    }
+  }, [])
+  const { couponCode, couponExpiresAt } = bannerConfig
 
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border/80 transition-all font-sans">
       {/* Top Banner Notice */}
       <div className="bg-primary text-primary-foreground text-xs py-1.5 px-4 text-center font-medium tracking-wide flex items-center justify-center gap-2">
         <Sparkles className="w-3.5 h-3.5 text-accent animate-pulse" />
-        <span>Ưu đãi tháng này: Miễn phí giao hàng toàn quốc cho đơn mỹ phẩm từ 500.000đ</span>
+        <span>
+          Ưu đãi tháng này: Miễn phí giao hàng toàn quốc cho đơn mỹ phẩm từ 500.000đ
+          {couponCode && (
+            <> — mã <span className="font-mono font-bold text-accent">{couponCode}</span>{couponExpiresAt ? ` (hạn ${couponExpiresAt})` : ''}</>
+          )}
+        </span>
       </div>
 
       <div className="container mx-auto px-4 py-3.5 flex justify-between items-center">

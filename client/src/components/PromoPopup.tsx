@@ -35,9 +35,10 @@ export const DEFAULT_POPUP_CONFIG: PopupConfig = {
   delaySeconds: 1.5,
   frequency: 'always',
   showOnMobile: true,
-  couponCode: '',
-  couponLabel: 'Giảm 10% tối đa 100K cho đơn đầu tiên',
-  couponExpiresAt: '',
+  // Mã vận hành ngay — người dùng bấm "Sao chép" là dán được vào ô mã giảm giá ở Checkout
+  couponCode: 'T7SPRING',
+  couponLabel: "Ưu đãi tháng này: Tặng kèm 30' chăm sóc da chỉ 199K khi đặt liệu trình chính",
+  couponExpiresAt: '31/08/2026',
 }
 
 export default function PromoPopup() {
