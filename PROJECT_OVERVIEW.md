@@ -145,17 +145,16 @@ customer_address, shipping_fee, payment_method, notes, order_code` đều trả 
 từ PostgREST (`... does not exist`) mới là dòng hiện ra trong toast đỏ khi bấm Đặt hàng
 (KHÔNG phải banner tự vẽ).
 
-Cách sửa (làm MỘT lần, theo thứ tự — KHÔNG phải lỗi code client/server):
+**Xem `SUPABASE_SETUP.md` (thư mục gốc) — hướng dẫn 2 bước copy-paste đầy đủ.**
+Tóm tắt (làm MỘT lần theo thứ tự — KHÔNG phải lỗi code client/server):
 
-1. Mở Supabase → **SQL Editor**, chạy `client/supabase/migrations/20260831000000_sync_schema.sql`
-   — file idempotent đồng bộ TOÀN BỘ bảng (products thiếu `stock`/`category`/`original_price`/`rating`,
-   orders thiếu `customer_*` + cột TMĐT...). `CREATE TABLE IF NOT EXISTS` trong migration gốc
-   KHÔNG tự bù cột cho bảng đã tồn tại nên chạy lại nó là không đủ. File cuối cùng có sẵn
-   `NOTIFY pgrst, 'reload schema';` (khắc phục `PGRST204/PGRST205`).
-   (Hoặc gọn hơn: chạy riêng `20260830000000_add_columns_to_orders.sql` nếu chỉ cần bảng `orders`.)
-2. Chạy `server/database/seeders/seed_products.sql` (count phải = 20).
-3. `services` phải có 5 dòng — đã kiểm chứng trực tiếp `Content-Range: 0-0/5`
-   (giá khớp `Booking.tsx` và `serviceMap` trong `AppointmentController`).
+1. Supabase → **SQL Editor** → chạy `client/supabase/migrations/20260831000000_sync_schema.sql`
+   (idempotent: bù cột cho MỌI bảng lệch — orders/products/appointments/order_items,
+   tạo `popup_configs`, tạo policy RLS `*_anon_all` nếu chưa có, kết thúc bằng
+   `NOTIFY pgrst, 'reload schema';`).
+2. Chạy `server/database/seeders/seed_services.sql` (đúng 5 dòng — nguồn duy nhất cho
+   "Dịch Vụ Nổi Bật Tại Eva Spa" + dropdown Booking + tab Dịch Vụ admin, cùng đọc
+   `public.services`), rồi `server/database/seeders/seed_products.sql` (đúng 20 sản phẩm).
 
 ---
 
