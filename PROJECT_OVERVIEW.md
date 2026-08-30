@@ -147,13 +147,13 @@ từ PostgREST (`... does not exist`) mới là dòng hiện ra trong toast đ�
 
 Cách sửa (làm MỘT lần, theo thứ tự — KHÔNG phải lỗi code client/server):
 
-1. Mở Supabase → **SQL Editor**, chạy `client/supabase/migrations/20260830000000_add_columns_to_orders.sql`.
-   File dùng `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` cho ĐỦ mọi cột (idempotent) và có sẵn
-   `NOTIFY pgrst, 'reload schema';`. Lưu ý: `CREATE TABLE IF NOT EXISTS` trong migration gốc
-   `20260809000000_create_spa_ecommerce_tables.sql` KHÔNG tự bù cột cho bảng đã tồn tại —
-   chạy lại nó là không đủ.
-2. Kiểm tra: `SELECT count(*) FROM public.products;` phải > 0. Nếu 0, chạy tiếp
-   `server/database/seeders/seed_products.sql` (mọi `image_url` đã được kiểm chứng `HEAD 200`).
+1. Mở Supabase → **SQL Editor**, chạy `client/supabase/migrations/20260831000000_sync_schema.sql`
+   — file idempotent đồng bộ TOÀN BỘ bảng (products thiếu `stock`/`category`/`original_price`/`rating`,
+   orders thiếu `customer_*` + cột TMĐT...). `CREATE TABLE IF NOT EXISTS` trong migration gốc
+   KHÔNG tự bù cột cho bảng đã tồn tại nên chạy lại nó là không đủ. File cuối cùng có sẵn
+   `NOTIFY pgrst, 'reload schema';` (khắc phục `PGRST204/PGRST205`).
+   (Hoặc gọn hơn: chạy riêng `20260830000000_add_columns_to_orders.sql` nếu chỉ cần bảng `orders`.)
+2. Chạy `server/database/seeders/seed_products.sql` (count phải = 20).
 3. `services` phải có 5 dòng — đã kiểm chứng trực tiếp `Content-Range: 0-0/5`
    (giá khớp `Booking.tsx` và `serviceMap` trong `AppointmentController`).
 
