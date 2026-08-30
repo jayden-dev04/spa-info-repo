@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,18 +13,22 @@ export default function Account() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const loadedFor = useRef<string | null>(null)
+
+  const emailKey = user?.email || ''
 
   useEffect(() => {
-    if (!user) return
+    if (!emailKey) return
+
+    if (loadedFor.current === emailKey) return
 
     async function loadUserData() {
-      setLoading(true)
       try {
         // 1. Load appointments
         const { data: aptData } = await supabase
           .from('appointments')
           .select('*')
-          .ilike('customer_email', user?.email || '')
+          .ilike('customer_email', emailKey)
           .order('created_at', { ascending: false })
 
         if (aptData) setAppointments(aptData)
@@ -33,10 +37,11 @@ export default function Account() {
         const { data: orderData } = await supabase
           .from('orders')
           .select('*, order_items(*, products(name))')
-          .ilike('customer_email', user?.email || '')
+          .ilike('customer_email', emailKey)
           .order('created_at', { ascending: false })
 
         if (orderData) setOrders(orderData)
+        loadedFor.current = emailKey
       } catch (err) {
         console.error(err)
       } finally {
@@ -44,8 +49,9 @@ export default function Account() {
       }
     }
 
+    setLoading(true)
     loadUserData()
-  }, [user])
+  }, [emailKey])
 
   if (!user) {
     return (
@@ -75,9 +81,18 @@ export default function Account() {
       {/* User Header Profile Card */}
       <div className="bg-card p-6 sm:p-8 rounded-3xl border border-border/80 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-secondary text-primary font-serif font-bold text-2xl flex items-center justify-center border border-border shadow-xs">
-            {user.fullName.charAt(0).toUpperCase()}
-          </div>
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.fullName}
+              referrerPolicy="no-referrer"
+              className="w-16 h-16 rounded-2xl object-cover border border-border shadow-xs"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-secondary text-primary font-serif font-bold text-2xl flex items-center justify-center border border-border shadow-xs">
+              {user.fullName.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-serif font-bold text-primary">{user.fullName}</h1>

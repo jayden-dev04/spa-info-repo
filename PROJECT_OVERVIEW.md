@@ -10,7 +10,7 @@ The application follows a modern decoupled 3-tier Fullstack Architecture:
 
 ```text
 [ React 19 + Vite Frontend ]  ==== (REST API) ====>  [ Laravel 12 Backend ]  ==== (PostgREST Client) ====>  [ Supabase PostgreSQL ]
-     http://localhost:5173                                http://127.0.0.1:8000                                https://lydxhltbvsuyrbvulkwe.supabase.co
+     http://localhost:5173                                http://localhost:8000                                https://lydxhltbvsuyrbvulkwe.supabase.co
 ```
 
 1. **Frontend (`client/`)**: Single Page Application built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **shadcn/ui** components.
@@ -81,7 +81,7 @@ spa-info-repo-main/
 
 ## 🔌 API Endpoints Reference
 
-Base Backend URL: `http://127.0.0.1:8000`
+Base Backend URL: `http://localhost:8000`
 
 | Method | Endpoint | Description | Request Body / Parameters |
 | :--- | :--- | :--- | :--- |
@@ -92,6 +92,39 @@ Base Backend URL: `http://127.0.0.1:8000`
 | `POST` | `/api/orders` | Khách đặt hàng từ giỏ hàng (trừ tồn kho & gửi hóa đơn) | `{ customer_name, customer_phone, customer_email, customer_address, total_amount, payment_method, items }` |
 | `GET` | `/api/orders` | Lấy danh sách đơn hàng kèm chi tiết món | `?status=pending` (optional) |
 | `PATCH` | `/api/orders/{id}` | Admin đổi trạng thái đơn hàng (gửi mail thông báo giao hàng) | `{ status: "shipped"/"completed"/"cancelled" }` |
+| `POST` | `/api/auth/exchange` | Backend kiểm tra role SAU khi client đăng nhập Google (role duy nhất do server quyết định) | `{ access_token }` → `{ success, user: { id, email, fullName, role } }` |
+
+## 🔐 Đăng nhập & Phân quyền (chỉ Google)
+
+- Frontend **chỉ còn một nút đăng nhập: Google** (`supabase.auth.signInWithOAuth({ provider: 'google' })`). Không còn form email/mật khẩu, không còn tab chọn role.
+- `AuthModal.tsx` redirect về `http://localhost:5173/auth/callback` → `AuthCallback.tsx` chờ supabase-js đổi `?code=` lấy session.
+- `AuthContext.tsx` gửi `access_token` lên `POST /api/auth/exchange`. **Backend** (`AuthController::exchange`) xác thực token với Supabase `/auth/v1/user`, tra `role` trong bảng `users` theo `uuid`, rồi đối chiếu `ADMIN_EMAILS` / `STAFF_EMAILS` — client không tự khai role.
+- Route `/admin` được `AdminPortalRoute` chặn: role != `admin|staff` → chuyển về `/account`.
+- **Vì sao role nằm ở `public.users` chứ không phải Authentication?** `auth.users` (bảng hệ thống của GoTrue, không sửa trực tiếp) chỉ lưu danh tính + `raw_user_meta_data`. `raw_user_meta_data` do chính client đổi được (`supabase.auth.updateUser({ data: { role: 'admin' } })`) nên không dùng làm nguồn quyền hạn. `public.users` là bảng application-level của mình (`id` = auth uid, `email`, `role`, `account_source`) — backend (`adminHeaders()` = key có quyền service_role) đọc qua PostgREST `select=role,account_source&or=(id.eq.<uid>,email.eq.<email>)`, ưu tiên row không phải `guest_booking`. Đây cũng chính là bảng mà `AppointmentController` và trigger `handle_new_user()` đang ghi.
+- Muốn đổi ai là admin/staff: sửa role trong `public.users` (Supabase → Table Editor), hoặc thêm email vào `ADMIN_EMAILS` / `STAFF_EMAILS` trong `server/app/Http/Controllers/AuthController.php`.
+- Xóa toàn bộ tài khoản (cả `auth.users` lẫn `public.users`): chạy `client/supabase/NUKE_users_and_auth.sql` trong Supabase → SQL Editor. Phải chạy ở Dashboard vì cần service_role key; `SUPABASE_SECRET_KEY` trong `server/.env` hiện là publishable key nên mọi call admin API trả 401.
+
+### Bật provider Google trong Supabase (làm MỘT lần)
+
+Supabase hiện trả `external.google = false` → nút Google sẽ lỗi tới khi bật provider.
+
+1. `SUPABASE_URL` → **Settings → API Keys**: lấy **SECRET key** (`sb_secret_...`), dán vào `SUPABASE_SECRET_KEY` trong `server/.env`.
+   (Hiện key này đang trùng publishable key nên mọi call admin API đang 401.)
+2. Chạy:
+   ```cmd
+   cd server
+   php enable-google-oauth.php
+   ```
+   Script đọc `client_id` / `client_secret` từ `server/.google_oauth.local` (đã gitignore) và gọi
+   `PUT /auth/v1/admin/config`.
+3. Google Cloud → Credentials → OAuth client: thêm redirect URI
+   `https://lydxhltbvsuyrbvulkwe.supabase.co/auth/v1/callback`.
+4. Supabase → Authentication → **URL Configuration** → Redirect URLs:
+   `http://localhost:5173/auth/callback`, `http://127.0.0.1:5173/auth/callback`
+   (và `Site URL` = `http://localhost:5173`).
+5. Google Cloud → Authorized JavaScript origins: `http://localhost:5173`, `http://127.0.0.1:5173`.
+
+Vite chạy `host: true` nên cả `localhost:5173` lẫn `127.0.0.1:5173` đều mở được.
 
 ---
 
@@ -125,5 +158,5 @@ run.bat
 - **Start Laravel Backend**:
   ```cmd
   cd server
-  php -S 127.0.0.1:8000 -t public
+  php -S localhost:8000 -t public
   ```

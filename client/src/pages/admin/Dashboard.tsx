@@ -103,7 +103,7 @@ export default function AdminDashboard() {
     try {
       let apiSuccess = false
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/appointments/${id}`, {
+        const res = await fetch(`http://localhost:8000/api/appointments/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus }),
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
     try {
       let apiSuccess = false
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/orders/${id}`, {
+        const res = await fetch(`http://localhost:8000/api/orders/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus }),

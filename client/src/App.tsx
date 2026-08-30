@@ -13,7 +13,8 @@ import OrderSuccess from './pages/OrderSuccess'
 import Blog from './pages/Blog'
 import BlogDetail from './pages/BlogDetail'
 import Account from './pages/Account'
-import AdminDashboard from './pages/admin/Dashboard'
+import AuthCallback from './pages/AuthCallback'
+import AdminPortalRoute from './pages/admin/AdminPortalRoute'
 import PromoPopup from './components/PromoPopup'
 import './index.css'
 
@@ -106,13 +107,23 @@ function Navbar() {
           {user ? (
             <Link
               to="/account"
-              className="flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-foreground px-3 py-2 rounded-xl text-xs font-semibold border border-border transition-all"
+              className="group flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-foreground pl-1.5 pr-3 py-1.5 rounded-full text-xs font-semibold border border-border transition-all"
               title="Trang cá nhân & Lịch hẹn"
             >
-              <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
-                {user.fullName.charAt(0).toUpperCase()}
-              </div>
-              <span className="hidden sm:inline max-w-[90px] truncate">{user.fullName}</span>
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.fullName}
+                  referrerPolicy="no-referrer"
+                  className="w-7 h-7 rounded-full object-cover ring-1 ring-border group-hover:ring-accent/50 transition-all"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).dataset.broken = '1'; e.currentTarget.style.display = 'none' }}
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="hidden sm:inline max-w-[160px] truncate">{user.fullName}</span>
             </Link>
           ) : (
             <button
@@ -139,6 +150,8 @@ function Navbar() {
 }
 
 function Footer() {
+  const { user } = useAuth()
+  const isStaff = user?.role === 'admin' || user?.role === 'staff'
   return (
     <footer className="bg-secondary/70 border-t border-border mt-20 pt-14 pb-8 text-foreground font-sans">
       <div className="container mx-auto px-4">
@@ -204,7 +217,9 @@ function Footer() {
           <div className="flex space-x-4">
             <Link to="/" className="hover:text-primary">Chính sách bảo mật</Link>
             <Link to="/" className="hover:text-primary">Điều khoản dịch vụ</Link>
-            <Link to="/admin" className="hover:text-primary font-medium">Trang Quản Trị</Link>
+            {isStaff && (
+              <Link to="/admin" className="hover:text-primary font-medium">Trang Quản Trị</Link>
+            )}
           </div>
         </div>
       </div>
@@ -245,8 +260,11 @@ function App() {
               <Route path="/account" element={<Account />} />
             </Route>
 
-            {/* Standalone Admin Route */}
-            <Route path="/admin" element={<AdminDashboard />} />
+            {/* Google OAuth redirect đích — không layout */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+
+            {/* Portal Quản Trị — chỉ role admin/staff do backend cấp */}
+            <Route path="/admin" element={<AdminPortalRoute />} />
           </Routes>
           <Toaster richColors />
         </CartProvider>

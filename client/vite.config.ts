@@ -6,6 +6,12 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    // Lắng nghe cả localhost lẫn 127.0.0.1 — URL redirect phải chạy được trên cả hai miền
+    host: true,
+    port: 5173,
+    strictPort: true,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

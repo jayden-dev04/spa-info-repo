@@ -25,7 +25,7 @@ export default function Booking() {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/appointments', {
+      const response = await fetch('http://localhost:8000/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

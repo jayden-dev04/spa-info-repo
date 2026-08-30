@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\OrderController;
+use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return response()->json([
@@ -20,6 +20,13 @@ Route::get('/', function () {
         ],
     ]);
 });
+
+// ---------------------------------------------------------------------------
+// Auth API — backend kiểm tra role sau khi client đăng nhập Google
+// ---------------------------------------------------------------------------
+
+// POST /api/auth/exchange — đổi access_token lấy profile + role (role do backend quyết định)
+Route::post('/api/auth/exchange', [AuthController::class, 'exchange']);
 
 // ---------------------------------------------------------------------------
 // CORS Preflight OPTIONS handler (dùng chung cho tất cả /api/* routes)
