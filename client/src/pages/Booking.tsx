@@ -25,16 +25,34 @@ export default function Booking() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const form = e.currentTarget
+    const vals = new FormData(form)
+    const name = String(vals.get('name') || '').trim()
+    const phone = String(vals.get('phone') || '').trim()
+    const email = String(vals.get('email') || '').trim()
+    const date = String(vals.get('date') || '').trim()
+    // Validation custom — không dùng bong bóng lỗi mặc định của browser
+    if (!name || !phone || !date) {
+      toast.error('Vui lòng điền đủ Họ tên, Số điện thoại và Thời gian mong muốn.')
+      return
+    }
+    if (!/^(0\d{8,10}|\+?\d{9,11})$/.test(phone.replace(/[\s.-]/g, ''))) {
+      toast.error('Số điện thoại không hợp lệ', { description: 'Ví dụ hợp lệ: 0912 345 678' })
+      return
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Email xác nhận không hợp lệ.')
+      return
+    }
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
     const payload = {
-      customer_name: formData.get('name'),
-      customer_phone: formData.get('phone'),
-      customer_email: formData.get('email'),
-      appointment_date: formData.get('date'),
-      service_id: formData.get('service') || null,
-      notes: formData.get('notes'),
+      customer_name: name,
+      customer_phone: phone,
+      customer_email: email,
+      appointment_date: date,
+      service_id: String(vals.get('service') || '') || null,
+      notes: vals.get('notes'),
     }
 
     try {
@@ -119,7 +137,7 @@ export default function Booking() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-foreground/90 font-medium">Họ và tên *</Label>
