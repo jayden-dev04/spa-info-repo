@@ -17,6 +17,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+// Danh sách ngân hàng chọn được — mỗi mã đơn gắn với MỘT tài khoản
+// VietQR thật (theo PROJECT_OVERVIEW), nên chọn ngân hàng chỉ đổi logo/
+// nhãn hiển thị; qrUrl luôn dùng tài khoản thật BANK_INFO.
+const BANK_OPTIONS = [
+  { bankId: 'VietinBank', label: 'VietinBank (Việt Nam Công Thương)', logo: 'https://cdn.vietqr.io/img/ICB.png' },
+  { bankId: 'Vietcombank', label: 'Vietcombank', logo: 'https://cdn.vietqr.io/img/VCB.png' },
+  { bankId: 'MB', label: 'MB Bank', logo: 'https://cdn.vietqr.io/img/MB.png' },
+  { bankId: 'Techcombank', label: 'Techcombank', logo: 'https://cdn.vietqr.io/img/TCB.png' },
+  { bankId: 'BIDV', label: 'BIDV', logo: 'https://cdn.vietqr.io/img/BIDV.png' },
+  { bankId: 'ACB', label: 'ACB', logo: 'https://cdn.vietqr.io/img/ACB.png' },
+] as const
+
 const BANK_INFO = {
   bankId: 'VietinBank',
   accountNo: '0364911491',
@@ -33,6 +45,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vietqr'>('vietqr')
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false)
+  const [selectedBank, setSelectedBank] = useState<(typeof BANK_OPTIONS)[number]['bankId']>('VietinBank')
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -396,9 +409,33 @@ export default function Checkout() {
                             />
                           </div>
                           <div className="text-xs space-y-1.5 text-muted-foreground w-full">
+                            <div className="pb-0.5">
+                              <span className="text-[11px] font-medium">Chọn ngân hàng (logo):</span>
+                              <div className="flex flex-wrap gap-1.5 mt-1">
+                                {BANK_OPTIONS.map((b) => (
+                                  <button
+                                    key={b.bankId}
+                                    type="button"
+                                    onClick={() => setSelectedBank(b.bankId)}
+                                    aria-label={b.label}
+                                    title={b.label}
+                                    className={`w-9 h-9 rounded-lg border-2 bg-white p-0.5 flex items-center justify-center transition-all ${
+                                      selectedBank === b.bankId
+                                        ? 'border-primary ring-2 ring-primary/30'
+                                        : 'border-border/70 hover:border-primary/50 opacity-70 hover:opacity-100'
+                                    }`}
+                                  >
+                                    <img src={b.logo} alt={b.label} className="max-w-full max-h-full object-contain" loading="lazy" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                             <div className="flex justify-between border-b border-border/50 pb-1">
                               <span>Ngân hàng:</span>
-                              <strong className="text-foreground">{BANK_INFO.bankId} (Việt Nam Công Thương)</strong>
+                              <strong className="text-foreground flex items-center gap-1.5">
+                                <img src={BANK_OPTIONS.find(b=>b.bankId===selectedBank)?.logo} alt="" className="w-4 h-4 object-contain" />
+                                {BANK_OPTIONS.find(b=>b.bankId===selectedBank)?.label}
+                              </strong>
                             </div>
                             <div className="flex justify-between border-b border-border/50 pb-1">
                               <span>Số tài khoản:</span>
@@ -567,10 +604,10 @@ export default function Checkout() {
           </DialogHeader>
           <div className="flex flex-col items-center gap-3 py-2">
             <div className="w-48 h-48 bg-white p-2 rounded-xl shadow-xs border border-border/80 flex items-center justify-center">
-              <img src={qrUrl} alt="VietQR VietinBank" className="w-full h-full object-contain" />
+              <img src={qrUrl} alt={`VietQR ${selectedBank}`} className="w-full h-full object-contain" />
             </div>
             <div className="text-xs text-muted-foreground text-center">
-              <span>{BANK_INFO.bankId} · {BANK_INFO.accountNo} · {BANK_INFO.accountName}</span>
+              <span className="flex items-center gap-1.5 justify-center"><img src={BANK_OPTIONS.find(b=>b.bankId===selectedBank)?.logo} alt="" className="w-4 h-4 object-contain" />{BANK_OPTIONS.find(b=>b.bankId===selectedBank)?.label} · {BANK_INFO.accountNo} · {BANK_INFO.accountName}</span>
             </div>
           </div>
           <div className="flex gap-3">
