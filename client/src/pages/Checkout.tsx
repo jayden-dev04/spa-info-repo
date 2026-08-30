@@ -1,13 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Leaf, ArrowLeft, ShieldCheck, Truck, Banknote, QrCode, Sparkles } from 'lucide-react'
+import { Leaf, ArrowLeft, ShieldCheck, Truck, Banknote, QrCode, Sparkles, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { API_BASE } from '@/lib/api'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const BANK_INFO = {
   bankId: 'VietinBank',
@@ -24,6 +32,7 @@ export default function Checkout() {
 
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vietqr'>('vietqr')
+  const [qrConfirmOpen, setQrConfirmOpen] = useState(false)
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -57,8 +66,12 @@ export default function Checkout() {
   const shippingFee = totalAmount >= FREESHIP_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE
   const finalTotal = totalAmount + shippingFee
 
-  // Temporary unique order code for preview QR
-  const orderCode = `EVA${Math.floor(100000 + Math.random() * 900000)}`
+  // Mã đơn ổn định cho suốt phiên thanh toán — không đổi mỗi re-render —
+  // dùng chung cho ảnh QR preview lẫn payload gửi backend.
+  const orderCode = useMemo(
+    () => `EVA${Math.floor(100000 + Math.random() * 900000)}`,
+    []
+  )
   const qrUrl = `https://img.vietqr.io/image/${BANK_INFO.bankId}-${BANK_INFO.accountNo}-compact2.png?amount=${finalTotal}&addInfo=${orderCode}&accountName=${encodeURIComponent(BANK_INFO.accountName)}`
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -68,11 +81,20 @@ export default function Checkout() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.fullName || !formData.phone || !formData.address) {
-      toast.error('Vui lòng điền đầy đủ các thông tin giao hàng bắt buộc!')
+    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
+      toast.error('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ chi tiết.')
       return
     }
+    // Với VietQR: bật hộp xác nhận quét mã TRƯỚC khi ghi đơn.
+    if (paymentMethod === 'vietqr') {
+      setQrConfirmOpen(true)
+      return
+    }
+    await placeOrder()
+  }
 
+  const placeOrder = async () => {
+    setQrConfirmOpen(false)
     setLoading(true)
 
     const fullAddress = `${formData.address}${formData.district ? ', ' + formData.district : ''}${formData.city ? ', ' + formData.city : ''}`
@@ -100,7 +122,7 @@ export default function Checkout() {
       let orderCreated = false
 
       try {
-        const response = await fetch('http://localhost:8000/api/orders', {
+        const response = await fetch(`${API_BASE}/api/orders`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -164,10 +186,11 @@ export default function Checkout() {
       })
 
       navigate('/order-success', { state: successState })
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Có lỗi xảy ra, vui lòng thử lại hoặc gọi Hotline.'
       console.error('Lỗi đặt hàng:', err)
       toast.error('Đặt hàng thất bại', {
-        description: err.message || 'Có lỗi xảy ra, vui lòng thử lại hoặc gọi Hotline.',
+        description: message,
       })
     } finally {
       setLoading(false)
@@ -198,14 +221,14 @@ export default function Checkout() {
         </h1>
       </div>
 
-      <form onSubmit={handleSubmitOrder}>
+      <form onSubmit={handleSubmitOrder} noValidate>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* LEFT COLUMN: Shipping & Payment Method (7 cols) */}
           <div className="lg:col-span-7 space-y-6">
             
             {/* 1. Customer Info */}
-            <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden">
+            <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden gap-0 py-0">
               <CardHeader className="bg-secondary/30 pb-4 border-b border-border/60">
                 <CardTitle className="text-lg font-serif font-bold text-primary flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">1</span>
@@ -224,7 +247,6 @@ export default function Checkout() {
                     <Input
                       id="fullName"
                       name="fullName"
-                      required
                       value={formData.fullName}
                       onChange={handleInputChange}
                       placeholder="Ví dụ: Nguyễn Thùy Linh"
@@ -239,7 +261,6 @@ export default function Checkout() {
                       id="phone"
                       name="phone"
                       type="tel"
-                      required
                       value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="0912 345 678"
@@ -271,7 +292,6 @@ export default function Checkout() {
                     <Input
                       id="city"
                       name="city"
-                      required
                       value={formData.city}
                       onChange={handleInputChange}
                       placeholder="Cần Thơ, TP.HCM, Hà Nội..."
@@ -300,7 +320,6 @@ export default function Checkout() {
                   <Input
                     id="address"
                     name="address"
-                    required
                     value={formData.address}
                     onChange={handleInputChange}
                     placeholder="Ví dụ: 123 Đường 30 Tháng 4, Phường An Khánh"
@@ -326,7 +345,7 @@ export default function Checkout() {
             </Card>
 
             {/* 2. Payment Method */}
-            <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden">
+            <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden gap-0 py-0">
               <CardHeader className="bg-secondary/30 pb-4 border-b border-border/60">
                 <CardTitle className="text-lg font-serif font-bold text-primary flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">2</span>
@@ -439,7 +458,7 @@ export default function Checkout() {
 
           {/* RIGHT COLUMN: Order Summary & Submit (5 cols) */}
           <div className="lg:col-span-5 space-y-6">
-            <Card className="rounded-2xl border-border/80 shadow-md sticky top-24 overflow-hidden">
+            <Card className="rounded-2xl border-border/80 shadow-md sticky top-24 overflow-hidden gap-0 py-0">
               <CardHeader className="bg-secondary/40 pb-4 border-b border-border/60">
                 <CardTitle className="text-lg font-serif font-bold text-primary flex items-center justify-between">
                   <span>Tóm Tắt Đơn Hàng</span>
@@ -474,11 +493,11 @@ export default function Checkout() {
                   ))}
                 </div>
 
-                {/* Calculation breakdown */}
-                <div className="pt-4 border-t border-border/80 space-y-2 text-xs">
+                {/* Totals */}
+                <div className="border-t border-border/60 pt-4 space-y-2 text-sm">
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Tổng tiền hàng:</span>
-                    <span className="font-semibold text-foreground">{totalAmount.toLocaleString('vi-VN')}đ</span>
+                    <span>Tạm tính:</span>
+                    <span>{totalAmount.toLocaleString('vi-VN')}đ</span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Phí vận chuyển:</span>
@@ -530,6 +549,43 @@ export default function Checkout() {
 
         </div>
       </form>
+
+      {/* Hộp xác nhận QR — chỉ bật sau khi form hợp lệ */}
+      <Dialog open={qrConfirmOpen} onOpenChange={setQrConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-serif text-primary">
+              <CheckCircle2 className="w-5 h-5 text-accent" />
+              Xác nhận chuyển khoản VietQR
+            </DialogTitle>
+            <DialogDescription>
+              Mở ứng dụng ngân hàng và quét mã QR bên dưới để chuyển{' '}
+              <strong className="text-accent">{finalTotal.toLocaleString('vi-VN')}đ</strong>{' '}
+              với nội dung chuyển khoản <strong className="font-mono">#{orderCode}</strong>.
+              Sau khi chuyển xong, bấm nút để hoàn tất đơn hàng.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-3 py-2">
+            <div className="w-48 h-48 bg-white p-2 rounded-xl shadow-xs border border-border/80 flex items-center justify-center">
+              <img src={qrUrl} alt="VietQR VietinBank" className="w-full h-full object-contain" />
+            </div>
+            <div className="text-xs text-muted-foreground text-center">
+              <span>{BANK_INFO.bankId} · {BANK_INFO.accountNo} · {BANK_INFO.accountName}</span>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setQrConfirmOpen(false)}>
+              Quay lại
+            </Button>
+            <Button
+              className="flex-1 rounded-xl bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
+              onClick={() => placeOrder()}
+            >
+              Tôi đã chuyển khoản — Đặt hàng
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

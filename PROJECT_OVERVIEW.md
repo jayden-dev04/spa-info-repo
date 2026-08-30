@@ -134,6 +134,29 @@ Vite chạy `host: true` nên cả `localhost:5173` lẫn `127.0.0.1:5173` đề
 - **Chủ tài khoản**: `TRAN TRUNG KIEN`
 - **VietQR QuickLink Format**: `https://img.vietqr.io/image/VietinBank-0364911491-compact2.png?amount={AMOUNT}&addInfo={ORDER_CODE}&accountName=TRAN%20TRUNG%20KIEN`
 
+### Lỗi "Could not find the column 'orders.customer_address' ..."
+
+Sập nguồn: **schema DB thật trên Supabase đã bị lệch** so với migration khai trong repo
+(`client/supabase/migrations/20260809000000_create_spa_ecommerce_tables.sql`).
+Kiểm chứng trực tiếp bằng PostgREST (publishable key): bảng `orders` thật CHỈ còn các cột
+`id, total_amount, status, created_at`; toàn bộ `customer_name, customer_email, customer_phone,
+customer_address, shipping_fee, payment_method, notes, order_code` đều trả `400/42703`.
+`OrderController::store` ghi đúng 6 cột theo migration → bị PostgREST từ chối, và message lỗi
+từ PostgREST (`... does not exist`) mới là dòng hiện ra trong toast đỏ khi bấm Đặt hàng
+(KHÔNG phải banner tự vẽ).
+
+Cách sửa (làm MỘT lần, theo thứ tự — KHÔNG phải lỗi code client/server):
+
+1. Mở Supabase → **SQL Editor**, chạy `client/supabase/migrations/20260830000000_add_columns_to_orders.sql`.
+   File dùng `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` cho ĐỦ mọi cột (idempotent) và có sẵn
+   `NOTIFY pgrst, 'reload schema';`. Lưu ý: `CREATE TABLE IF NOT EXISTS` trong migration gốc
+   `20260809000000_create_spa_ecommerce_tables.sql` KHÔNG tự bù cột cho bảng đã tồn tại —
+   chạy lại nó là không đủ.
+2. Kiểm tra: `SELECT count(*) FROM public.products;` phải > 0. Nếu 0, chạy tiếp
+   `server/database/seeders/seed_products.sql` (mọi `image_url` đã được kiểm chứng `HEAD 200`).
+3. `services` phải có 5 dòng — đã kiểm chứng trực tiếp `Content-Range: 0-0/5`
+   (giá khớp `Booking.tsx` và `serviceMap` trong `AppointmentController`).
+
 ---
 
 ## 🚀 Commands & Development Scripts

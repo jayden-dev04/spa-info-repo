@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useState, type SyntheticEvent } from 'react'
 import { X, ShoppingBag, Leaf, Sparkles, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCart } from '@/context/CartContext'
 import { toast } from 'sonner'
+import maskImg from '@/assets/images/product_mask.jpg'
+import sunscreenImg from '@/assets/images/product_sunscreen.jpg'
+
+const handleImgError = (e: SyntheticEvent<HTMLImageElement>) => {
+  const img = e.currentTarget
+  if (img.dataset.stage === 'unsplash') { img.src = maskImg; img.dataset.stage = 'mask' }
+  else if (img.dataset.stage === 'mask') { img.src = sunscreenImg; img.dataset.stage = 'sunscreen' }
+}
 
 export interface ProductItem {
   id: string | number
@@ -93,7 +101,8 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
               <img
                 src={imageUrl}
                 alt={product.name}
-                className="w-full h-full object-cover object-center"
+                data-stage="unsplash"
+                onError={handleImgError}
               />
               {product.tag && (
                 <span className="absolute top-4 left-4 bg-primary/90 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5 shadow-sm">

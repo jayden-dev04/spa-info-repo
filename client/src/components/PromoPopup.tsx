@@ -16,6 +16,9 @@ export interface PopupConfig {
   delaySeconds: number
   frequency: 'always' | 'once_per_day' | 'once_per_session'
   showOnMobile: boolean
+  couponCode?: string
+  couponLabel?: string
+  couponExpiresAt?: string
 }
 
 export const DEFAULT_POPUP_CONFIG: PopupConfig = {
@@ -31,7 +34,10 @@ export const DEFAULT_POPUP_CONFIG: PopupConfig = {
   footnote: "*Giá chưa bao gồm 8% thuế VAT & phí dịch vụ",
   delaySeconds: 1.5,
   frequency: 'always',
-  showOnMobile: true
+  showOnMobile: true,
+  couponCode: '',
+  couponLabel: 'Giảm 10% tối đa 100K cho đơn đầu tiên',
+  couponExpiresAt: '',
 }
 
 export default function PromoPopup() {
@@ -161,6 +167,31 @@ export default function PromoPopup() {
               <p className="text-[9px] text-[#918576] dark:text-stone-500 pt-1.5">
                 {config.footnote}
               </p>
+            )}
+
+            {/* Coupon code (admin-configurable) */}
+            {config.couponCode && (
+              <div className="pt-1.5">
+                <p className="text-[10px] text-[#635748] dark:text-stone-400">
+                  {config.couponLabel || 'Mã giảm giá dành cho bạn'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard?.writeText(config.couponCode || '') }}
+                  className="mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-[#bfa47d] bg-white/70 dark:bg-stone-900/50 text-[#7c5035] dark:text-amber-300 font-mono font-bold tracking-wider text-sm"
+                  title="Bấm để sao chép mã"
+                >
+                  {config.couponCode}
+                  <span className="text-[9px] font-sans font-semibold uppercase tracking-wider text-[#918576]">
+                    sao chép
+                  </span>
+                </button>
+                {config.couponExpiresAt && (
+                  <p className="text-[9px] text-[#918576] pt-1">
+                    Hạn dùng: {config.couponExpiresAt}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Elegant Line-Art Gold Lotus Logo */}

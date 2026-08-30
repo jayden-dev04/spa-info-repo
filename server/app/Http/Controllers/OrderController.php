@@ -62,14 +62,17 @@ class OrderController extends Controller
         // 1. Insert order vào bảng orders
         $orderRes = Http::withoutVerifying()
             ->withHeaders($this->supabaseHeaders(true))
-            ->post("{$this->baseUrl()}/rest/v1/orders", [
+            ->post("{$this->baseUrl()}/rest/v1/orders", array_merge([
                 'customer_name'    => $validated['customer_name'],
                 'customer_email'   => $validated['customer_email'],
                 'customer_phone'   => $validated['customer_phone'],
                 'customer_address' => $validated['customer_address'],
                 'total_amount'     => $validated['total_amount'],
                 'status'           => 'pending',
-            ]);
+            ], isset($validated['shipping_fee']) ? ['shipping_fee' => $validated['shipping_fee']] : [],
+            isset($validated['payment_method']) ? ['payment_method' => $validated['payment_method']] : [],
+            isset($validated['notes']) ? ['notes' => $validated['notes']] : [],
+            ['order_code' => $orderCode]));
 
         if (!$orderRes->successful()) {
             Log::error('Insert order failed', [

@@ -40,7 +40,7 @@ const PRESET_IMAGES = [
 export default function PopupTab() {
   const [config, setConfig] = useState<PopupConfig>(() => {
     const saved = localStorage.getItem('eva_spa_popup_config')
-    return saved ? JSON.parse(saved) : DEFAULT_POPUP_CONFIG
+    return saved ? { ...DEFAULT_POPUP_CONFIG, ...JSON.parse(saved) } : DEFAULT_POPUP_CONFIG
   })
 
   const [hasChanges, setHasChanges] = useState(false)
@@ -351,6 +351,51 @@ export default function PopupTab() {
                   className="w-full px-3.5 py-2 text-sm bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden gap-0 py-0">
+            <CardHeader className="pb-3 border-b border-border/60 bg-secondary/20">
+              <CardTitle className="text-sm font-serif font-bold text-primary">
+                Mã Giảm Giá Kèm Popup
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Mã coupon (để trống = không hiển thị)</label>
+                  <input
+                    type="text"
+                    value={config.couponCode ?? ''}
+                    onChange={(e) => handleUpdate({ couponCode: e.target.value.toUpperCase() })}
+                    placeholder="VD: EVA10"
+                    className="w-full px-3.5 py-2 text-sm bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary font-mono font-semibold"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Hạn sử dụng (ghi chú cho khách)</label>
+                  <input
+                    type="text"
+                    value={config.couponExpiresAt ?? ''}
+                    onChange={(e) => handleUpdate({ couponExpiresAt: e.target.value })}
+                    placeholder="VD: 30/09/2026"
+                    className="w-full px-3.5 py-2 text-sm bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary font-mono text-xs"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Mô tả ưu đãi</label>
+                <input
+                  type="text"
+                  value={config.couponLabel ?? ''}
+                  onChange={(e) => handleUpdate({ couponLabel: e.target.value })}
+                  placeholder="VD: Giảm 10% tối đa 100K cho đơn đầu tiên"
+                  className="w-full px-3.5 py-2 text-sm bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Mã hiển thị trong popup kèm nút sao chép. Khách nhập mã khi đặt hàng; cửa hàng sẽ áp dụng khi xác nhận đơn.
+              </p>
             </CardContent>
           </Card>
         </div>

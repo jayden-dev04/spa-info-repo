@@ -1,14 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Leaf, Calendar, Sparkles, CheckCircle2, PhoneCall, Clock } from 'lucide-react'
 import { toast } from 'sonner'
+import { API_BASE } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
+
+type ServiceOption = { id: number; name: string; price: number; duration_minutes: number | null }
+
+// Giá fallback chỉ dùng khi Supabase services trả về rỗng — giá thật khớp
+// với seed_services.sql (id 1→5), không phải giá bịa.
+const FALLBACK_SERVICES: ServiceOption[] = [
+  { id: 1, name: 'Gội Đầu Dưỡng Sinh Thảo Dược (60–75 phút)', price: 199000, duration_minutes: 70 },
+  { id: 2, name: 'Chăm Sóc & Phục Hồi Da Thảo Mộc (75 phút)', price: 350000, duration_minutes: 75 },
+  { id: 3, name: 'Massage Body Đá Nóng Himalaya (90 phút)', price: 420000, duration_minutes: 90 },
+  { id: 4, name: 'Combo Thư Giãn Toàn Diện: Gội Đầu + Massage Body', price: 550000, duration_minutes: 135 },
+  { id: 5, name: 'Xông Hơi Thảo Dược Hoàng Cung & Ngâm Chân', price: 150000, duration_minutes: 45 },
+]
 
 export default function Booking() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [services, setServices] = useState<ServiceOption[]>(FALLBACK_SERVICES)
+
+  // Danh sách liệu trình lấy thẳng từ bảng services (nguồn dữ liệu thật,
+  // dùng chung với trang Dịch Vụ + admin). Rỗng/lỗi -> giữ fallback.
+  useEffect(() => {
+    let cancelled = false
+    supabase
+      .from('services')
+      .select('id, name, price, duration_minutes')
+      .eq('is_active', true)
+      .order('id', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled || error || !data || data.length === 0) return
+        setServices(data as ServiceOption[])
+      })
+    return () => { cancelled = true }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -25,7 +56,7 @@ export default function Booking() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/appointments', {
+      const response = await fetch(`${API_BASE}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,8 +69,8 @@ export default function Booking() {
         setSuccess(true)
         toast.success("Đặt lịch thành công!", { description: "Eva Spa đã nhận thông tin và sẽ gọi xác nhận trong ít phút." })
       } else {
-        const errorData = await response.json()
-        toast.error("Lỗi đặt lịch", { description: errorData.error || "Vui lòng thử lại sau." })
+        const errorData = await response.json().catch(() => ({}))
+        toast.error("Lỗi đặt lịch", { description: (errorData as any).error || "Vui lòng thử lại sau." })
       }
     } catch (error) {
       toast.error("Lỗi kết nối", { description: "Không thể kết nối đến máy chủ." })
@@ -47,6 +78,8 @@ export default function Booking() {
       setLoading(false)
     }
   }
+
+  const fmt = (n: number) => Number(n).toLocaleString('vi-VN')
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-3xl">
@@ -136,11 +169,11 @@ export default function Booking() {
                   className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   <option value="">-- Chọn gói dưỡng sinh / spa --</option>
-                  <option value="1">Gội Đầu Dưỡng Sinh Thảo Dược (60 - 75 phút) - 199.000đ</option>
-                  <option value="2">Chăm Sóc & Phục Hồi Da Thảo Mộc (75 phút) - 350.000đ</option>
-                  <option value="3">Massage Body Đá Nóng Himalaya (90 phút) - 420.000đ</option>
-                  <option value="4">Combo Thư Giãn Toàn Diện: Gội Đầu + Massage Body - 550.000đ</option>
-                  <option value="5">Xông Hơi Thảo Dược Hoàng Cung & Ngâm Chân - 150.000đ</option>
+                  {services.map((s) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.name} - {fmt(s.price)}đ
+                    </option>
+                  ))}
                 </select>
               </div>
 

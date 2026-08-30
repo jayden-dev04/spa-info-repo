@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { API_BASE } from '@/lib/api'
 
 import AdminSidebar from './components/AdminSidebar'
 import AdminHeader from './components/AdminHeader'
@@ -103,7 +104,7 @@ export default function AdminDashboard() {
     try {
       let apiSuccess = false
       try {
-        const res = await fetch(`http://localhost:8000/api/appointments/${id}`, {
+        const res = await fetch(`${API_BASE}/api/appointments/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus }),
@@ -138,7 +139,7 @@ export default function AdminDashboard() {
     try {
       let apiSuccess = false
       try {
-        const res = await fetch(`http://localhost:8000/api/orders/${id}`, {
+        const res = await fetch(`${API_BASE}/api/orders/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus }),
