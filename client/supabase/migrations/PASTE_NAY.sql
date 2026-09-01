@@ -1,19 +1,11 @@
 -- ============================================================
--- EVA SPA — 00_RUN_NAY.sql  (chạy file này trước, duy nhất)
--- Supabase Dashboard → SQL Editor → New → paste toàn bộ → Run
---
--- Gồm: schema (bù cột, trigger, bảng popup_configs/blog_posts/
--- cart_items, RLS cho SPA đọc/ghi bằng publishable key)
--- + dữ liệu: popup_config 'default' (coupon T7SPRING).
---
--- SAU KHI chay xong file nay:
---   cd client
---   $env:SUPABASE_URL='https://<ref>.supabase.co'; $env:SUPABASE_KEY='<publishable key>'
---   node --experimental-strip-types scripts/load-data-to-supabase.mjs
---   → nap 20 san pham + 14 bai blog SEO (upsert theo name/slug)
+-- EVA SPA — PASTE 1 MIẾNG VÀO SQL EDITOR RỒI BẤM RUN.
+-- Dashboard Supabase → project → SQL Editor → New query →
+-- Ctrl+A (xóa mẫu) → Ctrl+V (dán HẾT file này) → Run.
+-- Idempotent. Không cần sửa gì.
 -- ============================================================
 
--- 1) popup_configs (popup + coupon tháng này)
+-- popup + coupon
 DROP TABLE IF EXISTS public.popup_configs;
 CREATE TABLE public.popup_configs (
   key TEXT PRIMARY KEY DEFAULT 'default',
@@ -21,8 +13,7 @@ CREATE TABLE public.popup_configs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 2) cart_items: 1 dòng / (chủ sở hữu, sản phẩm).
---    session_key = uuid máy khách HOẶC 'u:<uid>' khi đăng nhập (đồng bộ đa máy).
+-- giỏ hàng (chủ = session_key máy khách hoặc 'u:<uid>' khi đăng nhập)
 DROP TABLE IF EXISTS public.cart_items;
 CREATE TABLE public.cart_items (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -38,7 +29,7 @@ CREATE TABLE public.cart_items (
 ALTER TABLE public.cart_items
   ADD CONSTRAINT cart_items_owner_product_key UNIQUE (session_key, product_id);
 
--- 3) appointments: service_id KIỂU SỐ (khớp services.id int; SPA gửi number)
+-- lịch hẹn: service_id kiểu số, bù cột, trigger timestamp
 ALTER TABLE public.appointments DROP COLUMN IF EXISTS service_id;
 ALTER TABLE public.appointments ADD COLUMN service_id INTEGER;
 ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS service_name TEXT;
@@ -61,7 +52,7 @@ DROP TRIGGER IF EXISTS trg_appointments_timestamps ON public.appointments;
 CREATE TRIGGER trg_appointments_timestamps BEFORE INSERT OR UPDATE ON public.appointments
   FOR EACH ROW EXECUTE FUNCTION public.set_timestamps();
 
--- 4) orders: cột + sinh order_code/total tự động + timestamps
+-- đơn hàng
 ALTER TABLE public.orders ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'COD';
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;
@@ -92,11 +83,11 @@ DROP TRIGGER IF EXISTS trg_orders_timestamps ON public.orders;
 CREATE TRIGGER trg_orders_timestamps BEFORE UPDATE ON public.orders
   FOR EACH ROW EXECUTE FUNCTION public.set_timestamps();
 
--- 5) products: id default + is_active
+-- sản phẩm
 ALTER TABLE public.products ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
--- 6) blog_posts (nếu chưa có)
+-- blog
 CREATE TABLE IF NOT EXISTS public.blog_posts (
   slug TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -116,8 +107,7 @@ CREATE TABLE IF NOT EXISTS public.blog_posts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 7) RLS: SPA (anon + authenticated) đọc/ghi toàn bộ bảng trên bằng publishable key.
---    Secret Key của Laravel vẫn bypass RLS. Siết lại sau nếu cần (đổi USING (true)).
+-- RLS cho SPA (anon + authenticated)
 DO $$
 DECLARE t TEXT;
 BEGIN
@@ -131,29 +121,11 @@ BEGIN
   END LOOP;
 END $$;
 
--- 8) popup mặc định (coupon T7SPRING)
-INSERT INTO public.popup_configs (key, config) VALUES ('default', '{
-  "enabled": true,
-  "badge": "ƯU ĐÃI 30'"'" CHĂM SÓC DA",
-  "title": "CHỈ 199.000Đ",
-  "subtitle": "Khi đặt kèm bất kỳ liệu trình dưỡng sinh chính",
-  "highlightPrice": "199K",
-  "imageUrl": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80",
-  "ctaText": "ĐẶT LỊCH NGAY",
-  "ctaLink": "/booking",
-  "dismissText": "KHÔNG, CẢM ƠN",
-  "footnote": "*Giá chưa bao gồm 8% thuế VAT & phí dịch vụ",
-  "delaySeconds": 1.5,
-  "frequency": "always",
-  "showOnMobile": true,
-  "couponCode": "T7SPRING",
-  "couponLabel": "Ưu đãi tháng này: Miễn phí giao hàng toàn quốc cho đơn mỹ phẩm từ 500.000đ",
-  "couponExpiresAt": "31/08/2026"
-}'::jsonb)
+-- popup mặc định (coupon T7SPRING)
+INSERT INTO public.popup_configs (key, config) VALUES ('default', '{"enabled":true,"badge":"ƯU ĐÃI 30 CHĂM SÓC DA","title":"CHỈ 199.000Đ","subtitle":"Khi đặt kèm bất kỳ liệu trình dưỡng sinh chính","highlightPrice":"199K","imageUrl":"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80","ctaText":"ĐẶT LỊCH NGAY","ctaLink":"/booking","dismissText":"KHÔNG, CẢM ƠN","footnote":"*Giá chưa bao gồm 8% thuế VAT & phí dịch vụ","delaySeconds":1.5,"frequency":"always","showOnMobile":true,"couponCode":"T7SPRING","couponLabel":"Ưu đãi tháng này: Miễn phí giao hàng toàn quốc cho đơn mỹ phẩm từ 500.000đ","couponExpiresAt":"31/08/2026"}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
--- xác nhận: 4 dòng dưới phải chạy được sau khi Run
--- (nếu SELECT nào báo lỗi nghĩa là bước đó chưa apply)
+-- xác nhận (Run xong phải ra bảng kết quả 3 dòng, không lỗi đỏ)
 SELECT 'popup_configs' t, count(*) n FROM public.popup_configs
 UNION ALL SELECT 'cart_items', count(*) FROM public.cart_items
 UNION ALL SELECT 'blog_posts', count(*) FROM public.blog_posts;
