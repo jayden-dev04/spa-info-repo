@@ -114,6 +114,21 @@ END $$;
 INSERT INTO public.popup_configs (key, config) VALUES ('default', '{"enabled":true,"badge":"UU DOI 30 CHAM SOC DA","title":"CHI 199.000D","subtitle":"Khi dat kem bat ky lieu trinh duong sinh chinh","highlightPrice":"199K","imageUrl":"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80","ctaText":"DAT LICH NGAY","ctaLink":"/booking","dismissText":"KHONG, CAM ON","footnote":"*Gia chua gom 8% thue VAT & phi dich vu","delaySeconds":1.5,"frequency":"always","showOnMobile":true,"couponCode":"T7SPRING","couponLabel":"Uu dai thang nay: Mien phi giao hang toan quoc cho don my pham tu 500.000d","couponExpiresAt":"31/08/2026"}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
+-- 5b) ĐƠN HÀNG QUA LARAVEL: orders.notes + bảng order_items
+--     (OrderController ghi order_items(order_id, product_id, quantity, price))
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS notes TEXT;
+
+CREATE TABLE IF NOT EXISTS public.order_items (
+  order_id UUID,
+  product_id UUID,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  price NUMERIC NOT NULL DEFAULT 0
+);
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "spaweb_all_order_items" ON public.order_items;
+CREATE POLICY "spaweb_all_order_items" ON public.order_items
+  FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 -- XÁC NHẬN: Run xong phải thấy bảng 4 dòng, KHÔNG lỗi đỏ
 SELECT 'popup_configs' t, count(*) n FROM public.popup_configs
 UNION ALL SELECT 'blog_posts', count(*) FROM public.blog_posts
