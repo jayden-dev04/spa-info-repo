@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ServiceController;
 
 Route::get('/', function () {
     return response()->json([
@@ -67,3 +68,9 @@ Route::get('/api/orders', [OrderController::class, 'index']);
 
 // PATCH  /api/orders/{id}       — Admin cập nhật trạng thái đơn hàng (shipped, completed, cancelled)
 Route::patch('/api/orders/{id}', [OrderController::class, 'updateStatus']);
+// Services API
+// ---------------------------------------------------------------------------
+Route::get('/api/services', [ServiceController::class, 'index']);
+Route::post('/api/services', [ServiceController::class, 'store']);
+Route::patch('/api/services/{id}', [ServiceController::class, 'update']);
+Route::delete('/api/services/{id}', [ServiceController::class, 'destroy']);
