@@ -2,9 +2,10 @@
 
 ## Chạy một lần (bắt buộc trước khi test)
 
-1. Supabase Dashboard → **SQL Editor** → New → paste toàn bộ
-   `client/supabase/migrations/00_RUN_NAY.sql` → Run.
-2. Nạp dữ liệu (20 sản phẩm + 14 bài blog + popup coupon):
+1. Supabase Dashboard → **SQL Editor** → New query → paste TOÀN BỘ
+   `client/supabase/migrations/PASTE_NAY.sql` → Run (idempotent, không cần sửa gì).
+   File này tự bù cột khớp schema thật (products.category TEXT, appointments.*,
+   orders.*) + tạo `popup_configs`, `blog_posts`, `cart_items` + RLS cho SPA.
    ```powershell
    cd client
    $env:SUPABASE_URL='https://lydxhltbvsuyrbvulkwe.supabase.co'
