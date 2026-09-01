@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { User, Calendar, ShoppingBag, Clock, CheckCircle2, XCircle, Truck, Sparkles, LogOut } from 'lucide-react'
+import { User, Calendar, CalendarCheck, ShoppingBag, Clock, CheckCircle2, XCircle, Truck, Sparkles, LogOut } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function Account() {
@@ -113,6 +113,19 @@ export default function Account() {
               </Button>
             </Link>
           )}
+
+          <Link to="/account/orders">
+            <Button variant="outline" className="rounded-xl text-xs gap-1.5 border-border hover:bg-secondary">
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Đơn hàng</span>
+            </Button>
+          </Link>
+          <Link to="/account/appointments">
+            <Button variant="outline" className="rounded-xl text-xs gap-1.5 border-border hover:bg-secondary">
+              <CalendarCheck className="w-3.5 h-3.5" />
+              <span>Lịch hẹn</span>
+            </Button>
+          </Link>
 
           <Button
             variant="outline"
