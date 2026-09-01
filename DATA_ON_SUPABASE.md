@@ -1,6 +1,6 @@
 # Eva Spa — Dữ liệu ở đâu? (Supabase là nguồn sự thật)
 
-## Chạy một lần (bắt buộc trước khi test)
+## Chạy một lần (BẮT BUỘC — chưa chạy tính đến lần cập nhật này)
 
 1. Supabase Dashboard → **SQL Editor** → New query → paste TOÀN BỘ
    `client/supabase/migrations/PASTE_NAY.sql` → Run (idempotent, không cần sửa gì).
