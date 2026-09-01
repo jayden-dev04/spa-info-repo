@@ -114,11 +114,10 @@ export default function BlogTab() {
     setPosts(newPosts)
     localStorage.setItem('eva_spa_admin_blog_posts', JSON.stringify(newPosts))
     ;(async () => {
-      // upsert đủ bài hiện có; xóa các bài bị delete (id không còn trong danh sách)
-      const slugs = newPosts.map((p) => p.seoData.slug || p.id)
+      // CHỈ upsert bài admin hiển thị trong tab (mặc định loc = 'published').
+      // KHÔNG xóa theo 'not in' — sẽ xóa nhầm bài nháp/đang chờ duyệt dưới DB.
       const { error } = await supabase.from('blog_posts').upsert(newPosts.map(toRow), { onConflict: 'slug' })
       if (error) toast.error('Không thể lưu blog vào Supabase: ' + error.message)
-      else await supabase.from('blog_posts').delete().not('slug', 'in', `(${slugs.map((s) => `'${s}'`).join(',')})`)
     })()
   }
 

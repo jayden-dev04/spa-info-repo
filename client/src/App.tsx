@@ -14,6 +14,9 @@ import OrderSuccess from './pages/OrderSuccess'
 import Blog from './pages/Blog'
 import BlogDetail from './pages/BlogDetail'
 import Account from './pages/Account'
+import MyOrdersPage from './pages/MyOrdersPage'
+import MyAppointmentsPage from './pages/MyAppointmentsPage'
+import OrderDetailPage from './pages/OrderDetailPage'
 import AuthCallback from './pages/AuthCallback'
 import AdminPortalRoute from './pages/admin/AdminPortalRoute'
 import PromoPopup from './components/PromoPopup'
@@ -277,6 +280,9 @@ function App() {
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogDetail />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/account/orders" element={<MyOrdersPage />} />
+              <Route path="/account/appointments" element={<MyAppointmentsPage />} />
+              <Route path="/orders/:code" element={<OrderDetailPage />} />
             </Route>
 
             {/* Google OAuth redirect đích — không layout */}
