@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { ShoppingBag, User, Loader2 } from 'lucide-react'
@@ -34,7 +34,10 @@ export default function MyOrdersPage() {
   const [loading, setLoading] = useState(true)
   const loadedFor = useRef<string | null>(null)
 
-  const email = user?.email || ''
+  // ?dev=1 (chỉ dev build): preview mock khi chưa đăng nhập / DB chưa migration
+  const [sp] = useSearchParams()
+  const dev = import.meta.env.DEV && sp.get('dev') === '1'
+  const email = user?.email || (dev ? 'mock@eva.spa' : '')
 
   useEffect(() => {
     if (!email) return
@@ -75,7 +78,7 @@ export default function MyOrdersPage() {
     loadOrders()
   }, [email])
 
-  if (!user) {
+  if (!user && !dev) {
     return (
       <div className="container mx-auto px-4 py-20 max-w-md text-center font-sans">
         <div className="w-16 h-16 rounded-full bg-secondary text-primary flex items-center justify-center mx-auto mb-4">

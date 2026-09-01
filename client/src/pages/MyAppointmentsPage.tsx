@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -64,7 +64,10 @@ export default function MyAppointmentsPage() {
   const [minTimePassed, setMinTimePassed] = useState(false)
   const loadedFor = useRef<string | null>(null)
 
-  const emailKey = user?.email || ''
+  // ?dev=1 (chỉ dev build): preview mock khi chưa đăng nhập / DB chưa migration
+  const [sp] = useSearchParams()
+  const dev = import.meta.env.DEV && sp.get('dev') === '1'
+  const emailKey = user?.email || (dev ? 'mock@eva.spa' : '')
 
   useEffect(() => {
     const t = setTimeout(() => setMinTimePassed(true), 200)
@@ -106,7 +109,7 @@ export default function MyAppointmentsPage() {
     loadAppointments()
   }, [emailKey])
 
-  if (!user) {
+  if (!user && !dev) {
     return (
       <div className="container mx-auto px-4 py-20 max-w-md text-center font-sans">
         <div className="w-16 h-16 rounded-full bg-secondary text-primary flex items-center justify-center mx-auto mb-4">
