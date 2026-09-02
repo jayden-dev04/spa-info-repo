@@ -1,10 +1,11 @@
 -- ============================================================
--- EVA SPA — PASTE_NAY.sql  (bản gọn, chỉ TẠO/ĐỔI, ít câu nhất)
--- Supabase Dashboard → SQL Editor → New query → xóa hết mẫu →
--- dán TOÀN BỘ → Run. Nếu FAIL: bôi đen từng ▸ ĐOẠN chạy riêng.
+-- EVA SPA — PASTE_NAY.sql (bản gọn 6 đoạn, idempotent)
+-- Supabase Dashboard → SQL Editor → New → dán TOÀN BỘ → Run.
+-- Nếu báo lỗi: bôi đen từng ▸ ĐOẠN rồi Run riêng.
+-- Khi chạy xong: mở http://localhost:8000/dev/tool → bấm Seed → Status.
 -- ============================================================
 
--- ▸ ĐOẠN 1 — popup_configs
+-- ▸ ĐOẠN 1 — popup_configs (popup + coupon T7SPRING)
 DROP TABLE IF EXISTS public.popup_configs;
 CREATE TABLE public.popup_configs (
   key TEXT PRIMARY KEY DEFAULT 'default',
@@ -12,7 +13,7 @@ CREATE TABLE public.popup_configs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ▸ ĐOẠN 2 — blog_posts (bản cũ thiếu author → tạo lại)
+-- ▸ ĐOẠN 2 — blog_posts (bản cũ thiếu author/meta_* → tạo lại)
 DROP TABLE IF EXISTS public.blog_posts;
 CREATE TABLE public.blog_posts (
   slug TEXT PRIMARY KEY,
@@ -33,7 +34,7 @@ CREATE TABLE public.blog_posts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ▸ ĐOẠN 3 — cart_items (bản cũ sai cột → tạo lại)
+-- ▸ ĐOẠN 3 — cart_items (giỏ hàng đồng bộ máy/đa máy)
 DROP TABLE IF EXISTS public.cart_items;
 CREATE TABLE public.cart_items (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -47,18 +48,32 @@ CREATE TABLE public.cart_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ▸ ĐOẠN 4 — bù cột
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS category TEXT;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+-- ▸ ĐOẠN 4 — bù cột cho orders/appointments/products (tên khớp code hiện hành)
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_address TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_email TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS notes TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'COD';
-ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS appointment_date DATE;
-ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS appointment_time TEXT;
-ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS customer_email TEXT;
-ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS notes TEXT;
-ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_fee NUMERIC DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS order_code TEXT;
+ALTER TABLE public.orders ALTER COLUMN id SET DEFAULT gen_random_uuid();
 
--- ▸ ĐOẠN 5 — RLS mở cho SPA
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS service_id INTEGER;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS start_time TIME;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS end_time TIME;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS appointment_date DATE;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS total_price NUMERIC;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS note TEXT;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE public.appointments ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.products ALTER COLUMN id SET DEFAULT gen_random_uuid();
+DO $$ BEGIN
+  UPDATE public.products p SET category = c.name FROM public.product_categories c
+   WHERE p.category_id = c.id AND p.category IS NULL;
+EXCEPTION WHEN undefined_table THEN NULL; END $$;
+
+-- ▸ ĐOẠN 5 — RLS mở cho SPA (anon + authenticated dùng publishable key)
 DO $$
 DECLARE t TEXT;
 BEGIN
@@ -70,7 +85,7 @@ BEGIN
   END LOOP;
 END $$;
 
--- ▸ ĐOẠN 6 — xác nhận 3 bảng
-SELECT 'popup_configs' AS t, count(*) AS n FROM public.popup_configs
+-- ▸ ĐOẠN 6 — xác nhận (phải ra 3 dòng)
+SELECT 'popup_configs' AS doi_tuong, count(*) AS so_dong FROM public.popup_configs
 UNION ALL SELECT 'blog_posts', count(*) FROM public.blog_posts
 UNION ALL SELECT 'cart_items', count(*) FROM public.cart_items;
