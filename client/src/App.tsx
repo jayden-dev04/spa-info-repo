@@ -50,8 +50,11 @@ function Navbar() {
             <> — mã <span className="font-mono font-bold text-accent">{couponCode}</span>{couponExpiresAt ? ` (hạn ${couponExpiresAt})` : ''}</>
           )}
         </span>
-        <Link to="/account/orders" className="underline underline-offset-2 hover:text-accent whitespace-nowrap">
+        <Link to="/account/orders" className="underline underline-offset-2 hover:text-accent whitespace-nowrap flex items-center gap-1.5">
           Đơn hàng & Lịch hẹn của tôi
+          {totalItems > 0 && (
+            <span className="bg-accent text-accent-foreground rounded-full px-1.5 text-[10px] font-bold">{totalItems}</span>
+          )}
         </Link>
       </div>
 
