@@ -76,11 +76,11 @@ Key chỉ ghi vào <code>server/.env</code> máy bạn, không hiển thị lạ
 HTML);
     }
 
-    /** Nhận key qua POST form (password field). Không bao giờ trả key về. */
+    /** Nhận key (form password HOẶC ?key= từ URL local). Không bao giờ trả key về. */
     public function saveKey(Request $request)
     {
         if ($resp = $this->guard()) return $resp;
-        $key = trim((string) $request->input('key', ''));
+        $key = trim((string) ($request->input('key') ?: $request->query('key', '')));
         if (!str_starts_with($key, 'sb_secret_') || strlen($key) < 30) {
             return response()->json(['ok' => false, 'error' => 'key phải bắt đầu bằng sb_secret_'], 422);
         }
@@ -178,6 +178,7 @@ SQL;
                     $products[] = [
                         'name' => $un($row[1]), 'description' => $un($row[2]), 'price' => (float) $row[3],
                         'stock' => (int) $row[4], 'category' => $un($row[5]), 'image_url' => $un($row[6]), 'is_active' => true,
+                        'slug' => \Illuminate\Support\Str::slug($un($row[1])),
                     ];
                 }
             }
@@ -190,7 +191,7 @@ SQL;
         }
 
         // blog từ JSON export (blogSeeds) — đọc nếu loader scripts đã để lại file
-        $blogFile = base_path('../client/.tmp-blog-posts.json');
+        $blogFile = base_path('.tmp-blog-posts.json');
         $out['blog_posts'] = 'skip';
         if (file_exists($blogFile)) {
             $posts = json_decode(file_get_contents($blogFile), true);
