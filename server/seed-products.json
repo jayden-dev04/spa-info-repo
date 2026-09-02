@@ -1,0 +1,182 @@
+[
+ {
+  "name": "Tinh Chất Cấp Ẩm Thảo Mộc Danique",
+  "slug": "tinh-chat-cap-am-thao-moc-danique",
+  "description": "Sản phẩm serum & tinh chất chính hãng Eva Spa.",
+  "price": 1690000,
+  "category": "Serum & Tinh chất",
+  "image_url": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Huyết Thanh Phục Hồi Midnight Glow",
+  "slug": "huyet-thanh-phuc-hoi-midnight-glow",
+  "description": "Sản phẩm serum & tinh chất chính hãng Eva Spa.",
+  "price": 1990000,
+  "category": "Serum & Tinh chất",
+  "image_url": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Serum Vitamin C Sáng Da Cam Thảo",
+  "slug": "serum-vitamin-c-sang-da-cam-thao",
+  "description": "Sản phẩm serum & tinh chất chính hãng Eva Spa.",
+  "price": 890000,
+  "category": "Serum & Tinh chất",
+  "image_url": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Mặt Nạ Đất Sét Tràm Trà",
+  "slug": "mat-na-at-set-tram-tra",
+  "description": "Sản phẩm mặt nạ thảo mộc chính hãng Eva Spa.",
+  "price": 480000,
+  "category": "Mặt nạ thảo mộc",
+  "image_url": "https://images.unsplash.com/photo-1631730359585-38a4935cbec4?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Mặt Nạ Dưỡng Ẩm Rau Má Hoa Cúc",
+  "slug": "mat-na-duong-am-rau-ma-hoa-cuc",
+  "description": "Sản phẩm mặt nạ thảo mộc chính hãng Eva Spa.",
+  "price": 540000,
+  "category": "Mặt nạ thảo mộc",
+  "image_url": "https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Gel Rửa Mặt Bọt Rau Má",
+  "slug": "gel-rua-mat-bot-rau-ma",
+  "description": "Sản phẩm làm sạch da chính hãng Eva Spa.",
+  "price": 360000,
+  "category": "Làm sạch da",
+  "image_url": "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Nước Tẩy Trang Dầu Dừa Nguyên Chất",
+  "slug": "nuoc-tay-trang-dau-dua-nguyen-chat",
+  "description": "Sản phẩm làm sạch da chính hãng Eva Spa.",
+  "price": 290000,
+  "category": "Làm sạch da",
+  "image_url": "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Toner Hoa Hồng Cấp Ẩm Không Cồn",
+  "slug": "toner-hoa-hong-cap-am-khong-con",
+  "description": "Sản phẩm làm sạch da chính hãng Eva Spa.",
+  "price": 420000,
+  "category": "Làm sạch da",
+  "image_url": "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Kem Chống Nắng Vật Lý Thảo Dược SPF 50+",
+  "slug": "kem-chong-nang-vat-ly-thao-duoc-spf-50",
+  "description": "Sản phẩm chống nắng & dưỡng da chính hãng Eva Spa.",
+  "price": 790000,
+  "category": "Chống nắng & Dưỡng da",
+  "image_url": "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Kem Dưỡng Nghệ + Linh Chi Ban Đêm",
+  "slug": "kem-duong-nghe-linh-chi-ban-em",
+  "description": "Sản phẩm chống nắng & dưỡng da chính hãng Eva Spa.",
+  "price": 780000,
+  "category": "Chống nắng & Dưỡng da",
+  "image_url": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Muối Thảo Dược Ngâm Chân Thải Độc Hoàng Cung",
+  "slug": "muoi-thao-duoc-ngam-chan-thai-oc-hoang-cung",
+  "description": "Sản phẩm thảo dược ngâm chân & body chính hãng Eva Spa.",
+  "price": 250000,
+  "category": "Thảo dược ngâm chân & Body",
+  "image_url": "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Túi Ngâm Thảo Mộc Cổ Vai Gáy",
+  "slug": "tui-ngam-thao-moc-co-vai-gay",
+  "description": "Sản phẩm thảo dược ngâm chân & body chính hãng Eva Spa.",
+  "price": 320000,
+  "category": "Thảo dược ngâm chân & Body",
+  "image_url": "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Body Scrub Cà Phê Đắk Lắk",
+  "slug": "body-scrub-ca-phe-ak-lak",
+  "description": "Sản phẩm chăm sóc body chính hãng Eva Spa.",
+  "price": 390000,
+  "category": "Chăm sóc Body",
+  "image_url": "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Dầu Gội Bồ Kết Nấu Tươi Thủ Công",
+  "slug": "dau-goi-bo-ket-nau-tuoi-thu-cong",
+  "description": "Sản phẩm chăm sóc tóc dưỡng sinh chính hãng Eva Spa.",
+  "price": 320000,
+  "category": "Chăm sóc tóc dưỡng sinh",
+  "image_url": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Dầu Xả Vỏ Bưởi Hương Nhu",
+  "slug": "dau-xa-vo-buoi-huong-nhu",
+  "description": "Sản phẩm chăm sóc tóc dưỡng sinh chính hãng Eva Spa.",
+  "price": 300000,
+  "category": "Chăm sóc tóc dưỡng sinh",
+  "image_url": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Son Dưỡng Môi Mật Ong & Nghệ",
+  "slug": "son-duong-moi-mat-ong-nghe",
+  "description": "Sản phẩm chăm sóc môi chính hãng Eva Spa.",
+  "price": 180000,
+  "category": "Chăm sóc môi",
+  "image_url": "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Trà Dưỡng Sinh Hoa Cúc Kỷ Tử Hộp 30 Gói",
+  "slug": "tra-duong-sinh-hoa-cuc-ky-tu-hop-30-goi",
+  "description": "Sản phẩm dưỡng sinh bên trong chính hãng Eva Spa.",
+  "price": 220000,
+  "category": "Dưỡng sinh bên trong",
+  "image_url": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Cao Gừng Mật Ong Nguyên Chất",
+  "slug": "cao-gung-mat-ong-nguyen-chat",
+  "description": "Sản phẩm dưỡng sinh bên trong chính hãng Eva Spa.",
+  "price": 260000,
+  "category": "Dưỡng sinh bên trong",
+  "image_url": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Bộ Kit Chăm Sóc Da Thảo Mộc 4 Bước",
+  "slug": "bo-kit-cham-soc-da-thao-moc-4-buoc",
+  "description": "Sản phẩm bộ sản phẩm chính hãng Eva Spa.",
+  "price": 1490000,
+  "category": "Bộ sản phẩm",
+  "image_url": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ },
+ {
+  "name": "Bộ Quà Tặng Dưỡng Sinh Hoàng Cung",
+  "slug": "bo-qua-tang-duong-sinh-hoang-cung",
+  "description": "Sản phẩm bộ sản phẩm chính hãng Eva Spa.",
+  "price": 2290000,
+  "category": "Bộ sản phẩm",
+  "image_url": "https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=800&q=80",
+  "is_active": true
+ }
+]

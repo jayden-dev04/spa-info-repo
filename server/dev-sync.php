@@ -1,22 +1,36 @@
 <?php
-
-// cầu nối dev MỘT LẦN — nạp xong 3 bước rồi xóa file này.
-// Cách chạy (trong thư mục server/):
-//   php dev-sync.php migrate
-//   php dev-sync.php seed
-// Yêu cầu: SUPABASE_SECRET_KEY trong server/.env là sb_secret_ thật.
-// Không bao giờ in key ra.
+// === Eva Spa — cầu nối dev MỘT LẦN ===
+// Cách chạy (trong server/):  php dev-sync.php   (key dán trực tiếp, KHÔNG sửa .env)
+//   php dev-sync.php migrate   → chạy PASTE_NAY.sql + kiểm tra cột
+//   php dev-sync.php seed      → nạp 20 SP + 14 blog + popup
+//   php dev-sync.php status    → đếm bảng, xác nhận cột
+//   php dev-sync.php all       → migrate + seed + status
+// Key lấy từ biến môi trường SUPABASE_SECRET_KEY (khuyến nghị), hoặc file server/.secret_key (dòng đầu),
+// hoặc SUPABASE_SECRET_KEY trong .env. Ưu tiên key có tiền tố sb_secret_. Không bao giờ in key.
 
 require __DIR__ . '/vendor/autoload.php';
 $app = require_once __DIR__ . '/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$key = (string) (env('SUPABASE_SECRET_KEY') ?: '');
-if (!str_starts_with($key, 'sb_secret_')) {
-    fwrite(STDERR, "FAIL: server/.env chưa có SUPABASE_SECRET_KEY=*** (Dashboard → Settings → API Keys → Secret key)\n");
+$cands = array_values(array_filter([
+    (string) (getenv('SUPABASE_SECRET_KEY') ?: ''),
+    (string) @file_get_contents(__DIR__ . '/.secret_key') ?: '',
+    (string) (env('SUPABASE_SECRET_KEY') ?: ''),
+]));
+$key = '';
+foreach ($cands as $c) {
+    $c = trim(trim($c), "\"' \t");
+    if (str_starts_with($c, 'sb_secret_')) { $key = $c; break; }
+}
+if ($key === '') {
+    fwrite(STDERR, "CHƯA có secret key sb_secret_. Làm 1 trong 3 cách:\n");
+    fwrite(STDERR, "  A) set env:  cmd:  set SUPABASE_SECRET_KEY=sb_secret_xxx && php dev-sync.php all   (PowerShell: \$env:SUPABASE_SECRET_KEY='sb_secret_xxx'; php dev-sync.php all)\n");
+    fwrite(STDERR, "  B) tạo file server/.secret_key chứa đúng 1 dòng là key (file này đã gitignore)\n");
+    fwrite(STDERR, "  C) SUPABASE_SECRET_KEY=*** sb_secret_ thật trong .env (dòng 25)\n");
     exit(1);
 }
-$base = rtrim((string) env('SUPABASE_URL'), '/');
+$base = rtrim((string) env('SUPABASE_URL') ?: 'https://lydxhltbvsuyrbvulkwe.supabase.co', '/');
+$cmd  = $argv[1] ?? 'all';
 
 function req(string $method, string $url, array $headers, ?array $json = null): array
 {
@@ -28,99 +42,101 @@ function req(string $method, string $url, array $headers, ?array $json = null): 
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
         CURLOPT_TIMEOUT => 120,
+        CURLOPT_POSTFIELDS => $json === null ? null : json_encode($json, JSON_UNESCAPED_UNICODE),
     ]);
-    if ($json !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($json, JSON_UNESCAPED_UNICODE));
-    $body = curl_exec($ch);
+    $body = (string) curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return [$code, (string) $body];
+    return [$code, $body];
 }
 
-$h = ['apikey: ' . $key, 'Authorization: Bearer ' . $key, 'Content-Type: application/json'];
-$cmd = $argv[1] ?? 'status';
+$headers = ["apikey: $key", "Authorization: Bearer $key", 'Content-Type: application/json', 'Prefer: return=representation'];
 
-if ($cmd === 'migrate') {
-    $file = __DIR__ . '/../client/supabase/migrations/PASTE_NAY.sql';
-    $sql = file_get_contents($file);
-    // tách theo ';' nhưng tôn trọng $$ ... $$ và '...'
-    $stmts = []; $buf = ''; $depth = 0; $len = strlen($sql);
-    for ($i = 0; $i < $len; $i++) {
-        if (substr($sql, $i, 2) === '$$') { $depth++; $buf .= '$$'; $i++; continue; }
-        $c = $sql[$i];
-        if ($c === '$') { $buf .= $c; continue; }
-        if ($c === ';' && $depth % 2 === 0) { $stmts[] = $buf; $buf = ''; continue; }
-        $buf .= $c;
-    }
-    if (trim($buf) !== '') $stmts[] = $buf;
-    $ran = 0; $err = 0;
-    foreach ($stmts as $s) {
-        $clean = trim(preg_replace('/^\s*--.*$/m', '', $s));
-        if ($clean === '') continue;
-        [$code, $body] = req('POST', "{$base}/rest/v1/rpc", $h, ['sql' => $s] ?: null);
-        // rpc裸 sql không có → dùng endpoint /sql? PostgREST không có. Buộc dùng /rpc/exec_sql nếu có, còn lại báo.
-        if ($code === 404) {
-            fwrite(STDOUT, "exec_sql RPC chưa tồn tại — dán 1 lần vào SQL Editor:\n" .
-                "create or replace function public.exec_sql(sql text) returns void language plpgsql as \$\$ begin execute sql; end \$\$;\n" .
-                "revoke all on function public.exec_sql(text) from public, anon, authenticated;\n" .
-                "grant execute on function public.exec_sql(text) to service_role;\n");
-            exit(2);
+function step(string $label, int $code, string $body, bool $expect2xx = true): bool
+{
+    $ok = $code >= 200 && $code < 300;
+    printf("%-38s %s %d %s\n", $label, ($ok === $expect2xx) ? 'OK  ' : 'FAIL', $code, $ok ? '' : mb_substr(preg_replace('/\s+/', ' ', $body), 0, 140));
+    return $ok === $expect2xx;
+}
+
+// ---------- MIGRATE ----------
+if ($cmd === 'migrate' || $cmd === 'all') {
+    $sqlFile = __DIR__ . '/../client/supabase/migrations/PASTE_NAY.sql';
+    $segs = preg_split('/;\s*(?=\n|$)/', (string) file_get_contents($sqlFile), -1, PREG_SPLIT_NO_EMPTY);
+    $i = 0; $allOk = true;
+    foreach ($segs as $seg) {
+        $seg = trim($seg);
+        if ($seg === '' || preg_match('/^(--[^\n]*)+$/u', $seg)) continue;
+        $i++;
+        [$c, $b] = req('POST', "$base/rest/v1/rpc/exec_sql", $headers, ['sql' => $seg . ';']);
+        if ($c === 404) { // chưa có rpc exec_sql → thử qua /sql endpoint (Dashboard-only) → hướng dẫn
+            fwrite(STDERR, "LƯU Ý: project chưa có rpc 'exec_sql' — migrate phải chạy trong Supabase Dashboard (SQL Editor). Script này chỉ seed được bằng REST nếu schema đã đủ.\n");
+            $allOk = false; break;
         }
-        if ($code >= 200 && $code < 300) $ran++;
-        elseif (stripos($body, 'already exists') === false) { $err++; fwrite(STDERR, "STMT FAIL {$code}: " . substr($body, 0, 200) . "\n"); }
+        $allOk = step("sql#$i", $c, $b) && $allOk;
     }
-    echo "migrate: ran={$ran} err={$err}\n";
-    exit($err ? 1 : 0);
+    // đo cột
+    foreach ([
+        'products.category' => 'products?select=category&limit=1',
+        'popup_configs' => 'popup_configs?select=key&limit=1',
+        'blog_posts.author' => 'blog_posts?select=author&limit=1',
+        'cart_items.product_name' => 'cart_items?select=product_name&limit=1',
+        'orders.customer_address' => 'orders?select=customer_address&limit=1',
+        'appointments.start_time' => 'appointments?select=start_time&limit=1',
+    ] as $label => $q) {
+        [$c, $b] = req('GET', "$base/rest/v1/$q", $headers);
+        step("cot $label", $c, $b);
+    }
+    if (!$allOk) { echo "\n=> migrate chưa xong — chạy PASTE_NAY.sql trong Dashboard rồi chạy lại: php dev-sync.php seed\n"; }
 }
 
-if ($cmd === 'seed') {
-    $out = [];
-    // products
-    $sql = file_get_contents(__DIR__ . '/database/seeders/seed_products.sql');
-    $products = [];
-    if (preg_match_all("/\('((?:[^']|'')*)', '((?:[^']|'')*)', ([\d.]+), (\d+), '((?:[^']|'')*)', '((?:[^']|'')*)'\)/", $sql, $m, PREG_SET_ORDER)) {
-        foreach ($m as $r) {
-            $un = fn($v) => str_replace("''", "'", $v);
-            $products[] = ['name' => $un($r[1]), 'description' => $un($r[2]), 'price' => (float) $r[3], 'stock' => (int) $r[4], 'category' => $un($r[5]), 'image_url' => $un($r[6]), 'is_active' => true];
+// ---------- SEED ----------
+if ($cmd === 'seed' || $cmd === 'all') {
+    // nguồn: server/seed-products.json (sinh từ seed_products.sql — xem client/scripts/make-seed-json.mjs)
+    $rows = json_decode((string) @file_get_contents(__DIR__ . '/seed-products.json'), true) ?: [];
+    if ($rows === []) {
+        echo "Thiếu server/seed-products.json — bỏ qua seed products (blog+popup vẫn chạy).\n";
+    } else {
+        [$c, $b] = req('POST', "$base/rest/v1/products?on_conflict=slug", array_merge($headers, ['Prefer: resolution=merge-duplicates,return=minimal']), $rows);
+        step('seed products (' . count($rows) . ')', $c, $b);
+    }
+    $blogs = json_decode((string) @file_get_contents(__DIR__ . '/seed-blogs.json'), true) ?: [];
+    if ($blogs !== []) {
+        [$c, $b] = req('POST', "$base/rest/v1/blog_posts?on_conflict=slug", array_merge($headers, ['Prefer: resolution=merge-duplicates,return=minimal']), $blogs);
+        step('seed blogs (' . count($blogs) . ')', $c, $b);
+    }
+    $popup = ['key' => 'default', 'config' => [
+        'enabled' => true,
+        'coupon_code' => 'T7SPRING',
+        'headline' => 'Ưu Đãi Tháng Mới Tại Eva Spa',
+        'sub' => 'Giảm ngay 15% cho liệu trình Massage Đá Nóng & Facial Collagen khi đặt lịch trước.',
+        'cta' => 'Nhập mã T7SPRING giảm 15%',
+        'image_url' => 'https://images.unsplash.com/photo-1600334128495-802052fb5e43?w=900&q=80',
+    ]];
+    [$c, $b] = req('POST', "$base/rest/v1/popup_configs?on_conflict=key", array_merge($headers, ['Prefer: resolution=merge-duplicates,return=representation']), [$popup]);
+    step('seed popup_configs', $c, $b);
+}
+
+// ---------- STATUS ----------
+if ($cmd === 'status' || $cmd === 'all') {
+    $tables = ['products', 'blog_posts', 'popup_configs', 'cart_items', 'orders', 'appointments', 'services'];
+    foreach ($tables as $t) {
+        $ch = curl_init("$base/rest/v1/$t?select=&limit=0&or=id.is.null,id.not.is.null");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_HTTPHEADER => ["apikey: $key", "Authorization: Bearer $key", 'Prefer: count=exact'],
+            CURLOPT_HEADER => true,
+        ]);
+        $raw = (string) curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $hSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        curl_close($ch);
+        $range = '';
+        foreach (explode("\r\n", substr($raw, 0, $hSize)) as $h) {
+            if (stripos($h, 'content-range:') === 0) $range = trim(substr($h, 14));
         }
+        printf("%-16s http=%d rows=%s\n", $t, $code, $range !== '' ? $range : '-');
     }
-    $hh = [...$h, 'Prefer: resolution=merge-duplicates,return=minimal'];
-    [$c, $b] = req('POST', "{$base}/rest/v1/products", $hh, $products);
-    $out['products'] = $c < 300 ? 'ok x' . count($products) : "FAIL {$c} " . substr($b, 0, 160);
-
-    // blog
-    $jf = __DIR__ . '/.tmp-blog-posts.json';
-    if (file_exists($jf)) {
-        $posts = json_decode(file_get_contents($jf), true);
-        [$c, $b] = req('POST', "{$base}/rest/v1/blog_posts", $hh, $posts);
-        $out['blog_posts'] = $c < 300 ? 'ok x' . count($posts) : "FAIL {$c} " . substr($b, 0, 160);
-    } else $out['blog_posts'] = 'skip (thiếu .tmp-blog-posts.json)';
-
-    // popup
-    $popup = [['key' => 'default', 'config' => [
-        'enabled' => true, 'badge' => "ƯU ĐÃI 30' CHĂM SÓC DA", 'title' => 'CHỈ 199.000Đ',
-        'subtitle' => 'Khi đặt kèm bất kỳ liệu trình dưỡng sinh chính', 'highlightPrice' => '199K',
-        'imageUrl' => 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
-        'ctaText' => 'ĐẶT LỊCH NGAY', 'ctaLink' => '/booking', 'dismissText' => 'KHÔNG, CẢM ƠN',
-        'footnote' => '*Giá chưa bao gồm 8% thuế VAT & phí dịch vụ', 'delaySeconds' => 1.5,
-        'frequency' => 'always', 'showOnMobile' => true, 'couponCode' => 'T7SPRING',
-        'couponLabel' => 'Ưu đãi tháng này: Miễn phí giao hàng toàn quốc cho đơn mỹ phẩm từ 500.000đ',
-        'couponExpiresAt' => '31/08/2026',
-    ]]];
-    [$c, $b] = req('POST', "{$base}/rest/v1/popup_configs", $hh, $popup);
-    $out['popup_configs'] = $c < 300 ? 'ok' : "FAIL {$c} " . substr($b, 0, 160);
-
-    foreach ($out as $k => $v) echo "$k: $v\n";
-    exit(in_array('skip', array_map(fn($x) => explode(' ', $x)[0], $out), true) || str_contains(implode($out), 'FAIL') ? 1 : 0);
 }
-
-if ($cmd === 'status') {
-    $ok = ['secret_key_ok' => true];
-    foreach (['products' => 'select=category&limit=1', 'popup_configs' => 'select=key&limit=1', 'blog_posts' => 'select=author&limit=1', 'cart_items' => 'select=product_name&limit=1', 'orders' => 'select=notes&limit=1', 'order_items' => 'select=quantity&limit=1'] as $t => $q) {
-        [$c, $b] = req('GET', "{$base}/rest/v1/{$t}?{$q}", $h);
-        $ok[$t] = $c < 300 ? 'ok' : 'FAIL ' . substr($b, 0, 100);
-    }
-    print_r($ok);
-    exit;
-}
-
-echo "cách dùng: php dev-sync.php migrate|seed|status\n";

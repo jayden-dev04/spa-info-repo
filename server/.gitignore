@@ -25,3 +25,7 @@ Thumbs.db
 
 # Google OAuth credentials (local only)
 .google_oauth.local
+.secret_key
+key-probe.php
+env-list.php
+chan-doan.php
