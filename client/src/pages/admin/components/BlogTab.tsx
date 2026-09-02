@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { 
   Plus, 
   Search, 
@@ -90,6 +90,7 @@ export default function BlogTab() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all')
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
+  const knownSlugs = useRef<string[]>(posts.map((p) => p.seoData.slug || p.id))
 
   // Nguồn sự thật: bảng public.blog_posts (Supabase). localStorage chỉ cache.
   const toRow = (p: BlogPost) => ({
@@ -114,10 +115,14 @@ export default function BlogTab() {
     setPosts(newPosts)
     localStorage.setItem('eva_spa_admin_blog_posts', JSON.stringify(newPosts))
     ;(async () => {
-      // CHỈ upsert bài admin hiển thị trong tab (mặc định loc = 'published').
-      // KHÔNG xóa theo 'not in' — sẽ xóa nhầm bài nháp/đang chờ duyệt dưới DB.
+      // upsert bài đang hiển thị + xóa bài admin DELETE thật sự (không còn trong `posts`).
+      const slugs = newPosts.map((p) => p.seoData.slug || p.id)
       const { error } = await supabase.from('blog_posts').upsert(newPosts.map(toRow), { onConflict: 'slug' })
       if (error) toast.error('Không thể lưu blog vào Supabase: ' + error.message)
+      else {
+        const gone = knownSlugs.current.filter((s) => !slugs.includes(s))
+        for (const s of gone) await supabase.from('blog_posts').delete().eq('slug', s)
+      }
     })()
   }
 
@@ -149,6 +154,7 @@ export default function BlogTab() {
         },
       }))
       setPosts(rows)
+      knownSlugs.current = rows.map((p) => p.seoData.slug || p.id)
       localStorage.setItem('eva_spa_admin_blog_posts', JSON.stringify(rows))
     })()
   }, [])
