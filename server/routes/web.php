@@ -31,6 +31,15 @@ Route::get('/', function () {
 Route::post('/api/auth/exchange', [AuthController::class, 'exchange']);
 
 // ---------------------------------------------------------------------------
+// Dev tool (CHỈ APP_ENV=local): dán secret key 1 lần vào form local → migrate/seed
+// ---------------------------------------------------------------------------
+Route::get('/dev/tool', [\App\Http\Controllers\DevToolController::class, 'form']);
+Route::post('/dev/tool/key', [\App\Http\Controllers\DevToolController::class, 'saveKey']);
+Route::get('/dev/tool/migrate', [\App\Http\Controllers\DevToolController::class, 'migrate']);
+Route::get('/dev/tool/seed', [\App\Http\Controllers\DevToolController::class, 'seed']);
+Route::get('/dev/tool/status', [\App\Http\Controllers\DevToolController::class, 'status']);
+
+// ---------------------------------------------------------------------------
 // CORS Preflight OPTIONS handler (dùng chung cho tất cả /api/* routes)
 // ---------------------------------------------------------------------------
 $corsHeaders = [
