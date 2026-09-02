@@ -60,7 +60,8 @@ CREATE TABLE public.popup_configs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 2) blog_posts
+-- 2) blog_posts: DROP+CREATE (bản cũ thiếu author/meta_*)
+DROP TABLE IF EXISTS public.blog_posts;
 CREATE TABLE IF NOT EXISTS public.blog_posts (
   slug TEXT PRIMARY KEY,
   title TEXT NOT NULL,
