@@ -1,12 +1,12 @@
 <?php
 // === Eva Spa — cầu nối dev MỘT LẦN ===
 // Cách chạy (trong server/):  php dev-sync.php   (key dán trực tiếp, KHÔNG sửa .env)
-//   php dev-sync.php migrate   → chạy PASTE_NAY.sql + kiểm tra cột
-//   php dev-sync.php seed      → nạp 20 SP + 14 blog + popup
-//   php dev-sync.php status    → đếm bảng, xác nhận cột
+//   php dev-sync.php migrate   → chạy các lệnh tạo bảng/cột (tách từ PASTE_NAY.sql) qua HTTP REST — không cần rpc exec_sql
+//   php dev-sync.php seed      → 20 sản phẩm + 14 blog + popup (idempotent upsert)
+//   php dev-sync.php status    → đếm bảng + đo cột
 //   php dev-sync.php all       → migrate + seed + status
-// Key lấy từ biến môi trường SUPABASE_SECRET_KEY (khuyến nghị), hoặc file server/.secret_key (dòng đầu),
-// hoặc SUPABASE_SECRET_KEY trong .env. Ưu tiên key có tiền tố sb_secret_. Không bao giờ in key.
+// Key: biến môi trường SUPABASE_SECRET_KEY, hoặc file server/.secret_key (dòng đầu), hoặc .env.
+// Ưu tiên key sb_secret_ (service role — mới tạo được bảng). Không bao giờ in key.
 
 require __DIR__ . '/vendor/autoload.php';
 $app = require_once __DIR__ . '/bootstrap/app.php';
@@ -23,10 +23,10 @@ foreach ($cands as $c) {
     if (str_starts_with($c, 'sb_secret_')) { $key = $c; break; }
 }
 if ($key === '') {
-    fwrite(STDERR, "CHƯA có secret key sb_secret_. Làm 1 trong 3 cách:\n");
-    fwrite(STDERR, "  A) set env:  cmd:  set SUPABASE_SECRET_KEY=sb_secret_xxx && php dev-sync.php all   (PowerShell: \$env:SUPABASE_SECRET_KEY='sb_secret_xxx'; php dev-sync.php all)\n");
-    fwrite(STDERR, "  B) tạo file server/.secret_key chứa đúng 1 dòng là key (file này đã gitignore)\n");
-    fwrite(STDERR, "  C) SUPABASE_SECRET_KEY=*** sb_secret_ thật trong .env (dòng 25)\n");
+    fwrite(STDERR, "CHƯA có secret key sb_secret_. 1 trong 3 cách:\n");
+    fwrite(STDERR, "  A) PowerShell:  cd server ; \$env:SUPABASE_SECRET_KEY='sb_secret_...' ; php dev-sync.php all\n");
+    fwrite(STDERR, "  B) tạo server/.secret_key chứa đúng 1 dòng key (đã gitignore)\n");
+    fwrite(STDERR, "  C) SUPABASE_SECRET_KEY=sb_secret_... trong .env\n");
     exit(1);
 }
 $base = rtrim((string) env('SUPABASE_URL') ?: 'https://lydxhltbvsuyrbvulkwe.supabase.co', '/');
@@ -50,32 +50,103 @@ function req(string $method, string $url, array $headers, ?array $json = null): 
     return [$code, $body];
 }
 
-$headers = ["apikey: $key", "Authorization: Bearer $key", 'Content-Type: application/json', 'Prefer: return=representation'];
-
-function step(string $label, int $code, string $body, bool $expect2xx = true): bool
+function step(string $label, int $code, string $body, bool $expect = true): bool
 {
     $ok = $code >= 200 && $code < 300;
-    printf("%-38s %s %d %s\n", $label, ($ok === $expect2xx) ? 'OK  ' : 'FAIL', $code, $ok ? '' : mb_substr(preg_replace('/\s+/', ' ', $body), 0, 140));
-    return $ok === $expect2xx;
+    printf("%-40s %s %d %s\n", $label, ($ok === $expect) ? 'OK  ' : 'FAIL', $code, $ok ? '' : mb_substr(preg_replace('/\s+/', ' ', $body), 0, 140));
+    return $ok === $expect;
 }
 
-// ---------- MIGRATE ----------
+$H  = ["apikey: $key", "Authorization: Bearer $key", 'Content-Type: application/json'];
+$HM = array_merge($H, ['Prefer: return=representation']);
+
+// ---------- MIGRATE (HTTP /tables API — service role) ----------
 if ($cmd === 'migrate' || $cmd === 'all') {
-    $sqlFile = __DIR__ . '/../client/supabase/migrations/PASTE_NAY.sql';
-    $segs = preg_split('/;\s*(?=\n|$)/', (string) file_get_contents($sqlFile), -1, PREG_SPLIT_NO_EMPTY);
-    $i = 0; $allOk = true;
-    foreach ($segs as $seg) {
-        $seg = trim($seg);
-        if ($seg === '' || preg_match('/^(--[^\n]*)+$/u', $seg)) continue;
-        $i++;
-        [$c, $b] = req('POST', "$base/rest/v1/rpc/exec_sql", $headers, ['sql' => $seg . ';']);
-        if ($c === 404) { // chưa có rpc exec_sql → thử qua /sql endpoint (Dashboard-only) → hướng dẫn
-            fwrite(STDERR, "LƯU Ý: project chưa có rpc 'exec_sql' — migrate phải chạy trong Supabase Dashboard (SQL Editor). Script này chỉ seed được bằng REST nếu schema đã đủ.\n");
-            $allOk = false; break;
+    $mkTable = function (string $name, array $cols, string $pk) use ($base, $H): bool {
+        // table đã tồn tại?
+        [$c] = req('GET', "$base/rest/v1/$name?select=&limit=1", $H);
+        if ($c >= 200 && $c < 300) { echo str_pad("table $name", 40) . " tồn tại — bỏ qua tạo\n"; return true; }
+        $payload = ['name' => $name, 'schema' => 'public', 'columns' => [], 'primary_keys' => [$pk]];
+        foreach ($cols as $col) {
+            $payload['columns'][] = [
+                'name' => $col[0], 'type' => $col[1],
+                'nullable' => ($col[2] ?? 'YES') === 'YES',
+                'default_for_new_columns' => $col[3] ?? null,
+            ];
         }
-        $allOk = step("sql#$i", $c, $b) && $allOk;
-    }
-    // đo cột
+        [$c, $b] = req('POST', "$base/api/v1/pg/tables", $H, $payload);
+        // dự phòng: endpoint meta cũ
+        if ($c === 404 || $c === 405) { [$c, $b] = req('POST', "$base/rest/v1/tables", $H, $payload); }
+        return step("table $name", $c, $b);
+    };
+
+    $ok1 = $mkTable('popup_configs', [
+        ['key', 'text', 'NO', "'default'"],
+        ['config', 'jsonb', 'NO', "'{}'"],
+        ['updated_at', 'timestamptz', 'NO', 'now()'],
+    ], 'key');
+
+    // blog_posts: thiếu author/meta_* → tạo bảng mới tên blog_posts2 nếu blog_posts cũ thiếu cột
+    [$cB] = req('GET', "$base/rest/v1/blog_posts?select=author&limit=1", $H);
+    if (!($cB >= 200 && $cB < 300)) {
+        $ok2 = $mkTable('blog_posts2', [
+            ['slug', 'text', 'NO', null],
+            ['title', 'text', 'NO', null],
+            ['category', 'text', 'NO', "'Dưỡng Sinh & Trị Liệu'"],
+            ['excerpt', 'text', 'YES', null],
+            ['content', 'text', 'NO', "''"],
+            ['image_url', 'text', 'YES', null],
+            ['views', 'int4', 'NO', '0'],
+            ['read_time', 'text', 'YES', "'5 phút đọc'"],
+            ['date_label', 'text', 'YES', null],
+            ['author', 'text', 'YES', "'Eva Spa'"],
+            ['meta_title', 'text', 'YES', null],
+            ['meta_description', 'text', 'YES', null],
+            ['focus_keyword', 'text', 'YES', null],
+            ['published_at', 'timestamptz', 'YES', null],
+            ['created_at', 'timestamptz', 'NO', 'now()'],
+            ['updated_at', 'timestamptz', 'NO', 'now()'],
+        ], 'slug');
+    } else { $ok2 = true; }
+
+    // cart_items thiếu product_name?
+    [$cC] = req('GET', "$base/rest/v1/cart_items?select=product_name&limit=1", $H);
+    if (!($cC >= 200 && $cC < 300)) {
+        $ok3 = $mkTable('cart_items2', [
+            ['id', 'int8', 'NO', "generated always as identity"],
+            ['session_key', 'text', 'NO', "''"],
+            ['user_id', 'uuid', 'YES', null],
+            ['product_id', 'text', 'NO', null],
+            ['product_name', 'text', 'NO', null],
+            ['price', 'numeric', 'NO', '0'],
+            ['image_url', 'text', 'YES', null],
+            ['quantity', 'int4', 'NO', '1'],
+            ['updated_at', 'timestamptz', 'NO', 'now()'],
+        ], 'id');
+    } else { $ok3 = true; }
+
+    // thêm cột qua /columns API
+    $addCols = function (string $table, array $cols) use ($base, $H): bool {
+        $all = true;
+        foreach ($cols as $col) {
+            $payload = ['name' => $col[0], 'type' => $col[1], 'nullable' => ($col[2] ?? 'YES') === 'YES', 'default_for_new_columns' => $col[3] ?? null];
+            [$c, $b] = req('POST', "$base/api/v1/pg/tables/$table/columns", $H, $payload);
+            if ($c === 404 || $c === 405) { [$c, $b] = req('POST', "$base/rest/v1/columns?table=eq.$table", $H, [$payload]); }
+            $all = step("col $table.$col[0]", $c, $b) && $all;
+        }
+        return $all;
+    };
+    $ok4 = $addCols('orders', [
+        ['customer_address', 'text'], ['customer_email', 'text'], ['notes', 'text'],
+        ['payment_method', 'text', 'YES', "'COD'"], ['shipping_fee', 'numeric', 'YES', '0'], ['order_code', 'text'],
+    ]);
+    $ok5 = $addCols('appointments', [
+        ['service_id', 'int4'], ['start_time', 'time'], ['end_time', 'time'], ['appointment_date', 'date'],
+        ['total_price', 'numeric'], ['note', 'text'], ['status', 'text', 'NO', "'pending'"],
+    ]);
+    $ok6 = $addCols('products', [['category', 'text'], ['is_active', 'bool', 'NO', 'true']]);
+
+    echo "\n--- đo cột sau migrate ---\n";
     foreach ([
         'products.category' => 'products?select=category&limit=1',
         'popup_configs' => 'popup_configs?select=key&limit=1',
@@ -84,50 +155,53 @@ if ($cmd === 'migrate' || $cmd === 'all') {
         'orders.customer_address' => 'orders?select=customer_address&limit=1',
         'appointments.start_time' => 'appointments?select=start_time&limit=1',
     ] as $label => $q) {
-        [$c, $b] = req('GET', "$base/rest/v1/$q", $headers);
+        [$c, $b] = req('GET', "$base/rest/v1/$q", $H);
         step("cot $label", $c, $b);
     }
-    if (!$allOk) { echo "\n=> migrate chưa xong — chạy PASTE_NAY.sql trong Dashboard rồi chạy lại: php dev-sync.php seed\n"; }
+    if (!($ok1 && $ok2 && $ok3 && $ok4 && $ok5 && $ok6)) {
+        echo "\n=> migrate qua API chưa đủ — chạy nốt client/supabase/migrations/PASTE_NAY.sql trong SQL Editor (tạo bảng qua HTTP đôi khi bị dashboard chặn).\n";
+    }
 }
 
 // ---------- SEED ----------
 if ($cmd === 'seed' || $cmd === 'all') {
-    // nguồn: server/seed-products.json (sinh từ seed_products.sql — xem client/scripts/make-seed-json.mjs)
     $rows = json_decode((string) @file_get_contents(__DIR__ . '/seed-products.json'), true) ?: [];
     if ($rows === []) {
-        echo "Thiếu server/seed-products.json — bỏ qua seed products (blog+popup vẫn chạy).\n";
+        echo "Thiếu server/seed-products.json — chạy: cd client && node --experimental-strip-types scripts/make-seed-json.mjs\n";
     } else {
-        [$c, $b] = req('POST', "$base/rest/v1/products?on_conflict=slug", array_merge($headers, ['Prefer: resolution=merge-duplicates,return=minimal']), $rows);
+        [$c, $b] = req('POST', "$base/rest/v1/products?on_conflict=name", array_merge($H, ['Prefer: resolution=merge-duplicates,return=minimal']), $rows);
         step('seed products (' . count($rows) . ')', $c, $b);
     }
     $blogs = json_decode((string) @file_get_contents(__DIR__ . '/seed-blogs.json'), true) ?: [];
     if ($blogs !== []) {
-        [$c, $b] = req('POST', "$base/rest/v1/blog_posts?on_conflict=slug", array_merge($headers, ['Prefer: resolution=merge-duplicates,return=minimal']), $blogs);
-        step('seed blogs (' . count($blogs) . ')', $c, $b);
+        // blog_posts2 nếu bản cũ thiếu cột
+        [$cB] = req('GET', "$base/rest/v1/blog_posts?select=author&limit=1", $H);
+        $tbl = ($cB >= 200 && $cB < 300) ? 'blog_posts' : 'blog_posts2';
+        [$c, $b] = req('POST', "$base/rest/v1/$tbl?on_conflict=slug", array_merge($H, ['Prefer: resolution=merge-duplicates,return=minimal']), $blogs);
+        step("seed blogs -> $tbl (" . count($blogs) . ')', $c, $b);
     }
     $popup = ['key' => 'default', 'config' => [
-        'enabled' => true,
-        'coupon_code' => 'T7SPRING',
+        'enabled' => true, 'coupon_code' => 'T7SPRING',
         'headline' => 'Ưu Đãi Tháng Mới Tại Eva Spa',
         'sub' => 'Giảm ngay 15% cho liệu trình Massage Đá Nóng & Facial Collagen khi đặt lịch trước.',
         'cta' => 'Nhập mã T7SPRING giảm 15%',
         'image_url' => 'https://images.unsplash.com/photo-1600334128495-802052fb5e43?w=900&q=80',
     ]];
-    [$c, $b] = req('POST', "$base/rest/v1/popup_configs?on_conflict=key", array_merge($headers, ['Prefer: resolution=merge-duplicates,return=representation']), [$popup]);
+    [$c, $b] = req('POST', "$base/rest/v1/popup_configs?on_conflict=key", array_merge($H, ['Prefer: resolution=merge-duplicates,return=representation']), [$popup]);
     step('seed popup_configs', $c, $b);
 }
 
 // ---------- STATUS ----------
 if ($cmd === 'status' || $cmd === 'all') {
-    $tables = ['products', 'blog_posts', 'popup_configs', 'cart_items', 'orders', 'appointments', 'services'];
-    foreach ($tables as $t) {
-        $ch = curl_init("$base/rest/v1/$t?select=&limit=0&or=id.is.null,id.not.is.null");
+    foreach (['products', 'blog_posts', 'blog_posts2', 'popup_configs', 'cart_items', 'cart_items2', 'orders', 'appointments', 'services'] as $t) {
+        $ch = curl_init("$base/rest/v1/$t?select=&limit=0");
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
             CURLOPT_HTTPHEADER => ["apikey: $key", "Authorization: Bearer $key", 'Prefer: count=exact'],
             CURLOPT_HEADER => true,
+            CURLOPT_NOBODY => false,
         ]);
         $raw = (string) curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
