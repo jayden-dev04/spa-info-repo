@@ -39,3 +39,9 @@ make-seed-json.php
 sql-endpoints-probe.php
 mo-ta-bang.php
 test-ghi.php
+
+.mgmt_token
+probe-mgmt.php
+enable-exec-sql.php
+sql-runner.php
+sql-endpoints-probe.php
