@@ -92,10 +92,26 @@ ALTER TABLE public.cart_items ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DE
 ALTER TABLE public.cart_items ALTER COLUMN session_id SET DEFAULT '';
 CREATE UNIQUE INDEX IF NOT EXISTS cart_items_session_product_uniq ON public.cart_items (session_key, product_id);
 CREATE INDEX IF NOT EXISTS cart_items_user_idx ON public.cart_items (user_id);
-
--- ▸ 5 — products: category TEXT (giữ category_id FK) + slug UNIQ (seed idempotent)
+-- ▸ 5 — products: category TEXT (tự mirror từ product_categories qua trigger) + stock
+--     GENERATED từ stock_quantity (Shop/ProductsTab đọc `stock`, OrderController trừ `stock`)
+--     + slug UNIQ (seed idempotent).
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS category TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS products_slug_uniq ON public.products (slug);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                 WHERE table_schema='public' AND table_name='products' AND column_name='stock') THEN
+    ALTER TABLE public.products ADD COLUMN stock INTEGER
+      GENERATED ALWAYS AS (COALESCE(stock_quantity, 0)) STORED;
+  END IF;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+CREATE OR REPLACE FUNCTION public.products_mirror_category() RETURNS trigger AS $fn$
+BEGIN
+  NEW.category := COALESCE((SELECT c.name FROM public.product_categories c WHERE c.id = NEW.category_id), NEW.category, 'Mỹ phẩm thảo mộc');
+  RETURN NEW;
+END $fn$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS products_mirror_category ON public.products;
+CREATE TRIGGER products_mirror_category BEFORE INSERT OR UPDATE OF category_id ON public.products
+  FOR EACH ROW EXECUTE FUNCTION public.products_mirror_category();
 DO $$ BEGIN
   UPDATE public.products p SET category = c.name
    FROM public.product_categories c WHERE p.category_id = c.id AND p.category IS NULL;
