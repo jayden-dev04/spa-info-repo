@@ -1,17 +1,19 @@
 # === Eva Spa — cầu nối dev MỘT LẦN ===
-# KHÔNG bao giờ commit key vào git. Server/.env đã gitignore.
+# KHÔNG bao giờ commit key vào git. Server/.env + server/.secret_key đã gitignore.
 #
-# Cách nhanh nhất (KHÔNG cần Dashboard):
-#   PowerShell:  cd server ; $env:SUPABASE_SECRET_KEY='sb_secret_...' ; php dev-sync.php all
-#   CMD:         cd server && set SUPABASE_SECRET_KEY=sb_secret_... && php dev-sync.php all
-# hoặc tạo file server/.secret_key chứa đúng 1 dòng là key (file này cũng gitignore).
+# Bước 0 — bảo đảm seed JSON mới nhất (20 sản phẩm + 14 blog, nguồn chuẩn):
+#   cd client
+#   node --experimental-strip-types scripts/make-seed-json.mjs
 #
-# Lệnh:
-#   php dev-sync.php migrate   → chạy PASTE_NAY.sql qua rpc exec_sql (nếu project có rpc)
-#   php dev-sync.php seed      → 20 sản phẩm + 14 blog + popup coupon T7SPRING
-#   php dev-sync.php status    → đếm bảng + đo cột
-#   php dev-sync.php all       → migrate + seed + status
+# Bước 1 — đưa key service-role (sb_secret_...) vào, 1 trong 3 cách:
+#   A) PowerShell:  cd server ; $env:SUPABASE_SECRET_KEY='sb_secret_...' ; php dev-sync.php all
+#   B) CMD:         cd server && set SUPABASE_SECRET_KEY=sb_secret_... && php dev-sync.php all
+#   C) tạo file server/.secret_key chứa đúng 1 dòng là key (đã gitignore) → php dev-sync.php all
 #
-# Nếu migrate báo 'project chưa có rpc exec_sql': dán toàn bộ
-# client/supabase/migrations/PASTE_NAY.sql vào Supabase Dashboard → SQL Editor → Run
-# (đây chính là 'file migration' mục tiêu cần user chạy). Sau đó: php dev-sync.php seed
+# dev-sync.php all = migrate (tạo bảng/cột qua HTTP API — KHÔNG cần SQL Editor)
+#                  + seed (20 SP + 14 blog + popup coupon)
+#                  + status (đếm bảng + đo cột).
+# Key lấy tại: https://supabase.com/dashboard/project/lydxhltbvsuyrbvulkwe/settings/api → Secret key → Copy
+#
+# Nếu HTTP migrate bị dashboard chặn 1 phần: dán client/supabase/migrations/PASTE_NAY.sql
+# vào SQL Editor → Run (đó chính là 'file migration' mục tiêu), rồi chạy: php dev-sync.php seed
