@@ -181,11 +181,19 @@ if ($cmd === 'seed' || $cmd === 'all') {
         step("seed blogs -> $tbl (" . count($blogs) . ')', $c, $b);
     }
     $popup = ['key' => 'default', 'config' => [
-        'enabled' => true, 'coupon_code' => 'T7SPRING',
-        'headline' => 'Ưu Đãi Tháng Mới Tại Eva Spa',
-        'sub' => 'Giảm ngay 15% cho liệu trình Massage Đá Nóng & Facial Collagen khi đặt lịch trước.',
-        'cta' => 'Nhập mã T7SPRING giảm 15%',
-        'image_url' => 'https://images.unsplash.com/photo-1600334128495-802052fb5e43?w=900&q=80',
+        'enabled' => true,
+        'badge' => "ƯU ĐÃI 30' CHĂM SÓC DA",
+        'title' => 'CHỈ 199.000Đ',
+        'subtitle' => 'Khi đặt kèm bất kỳ liệu trình dưỡng sinh chính',
+        'highlightPrice' => '199K',
+        'imageUrl' => 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
+        'ctaText' => 'ĐẶT LỊCH NGAY',
+        'ctaLink' => '/booking',
+        'dismissText' => 'KHÔNG, CẢM ƠN',
+        'footnote' => '*Giá chưa bao gồm 8% thuế VAT & phí dịch vụ',
+        'delaySeconds' => 1.5,
+        'couponCode' => 'T7SPRING',
+        'couponLabel' => 'Giảm 10% tối đa 100.000đ',
     ]];
     [$c, $b] = req('POST', "$base/rest/v1/popup_configs?on_conflict=key", array_merge($H, ['Prefer: resolution=merge-duplicates,return=representation']), [$popup]);
     step('seed popup_configs', $c, $b);
