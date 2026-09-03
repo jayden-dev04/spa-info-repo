@@ -99,27 +99,27 @@ class OrderController extends Controller
                 $isUuid = is_string($prodId) && Str::isUuid($prodId);
 
                 $itemsToInsert[] = [
-                    'order_id'   => $orderId,
-                    'product_id' => $isUuid ? $prodId : null,
-                    'quantity'   => (int) ($item['quantity'] ?? 1),
-                    'price'      => (float) ($item['price'] ?? 0),
+                    'order_id'    => $orderId,
+                    'product_id'  => $isUuid ? $prodId : null,
+                    'quantity'    => (int) ($item['quantity'] ?? 1),
+                    'unit_price'  => (float) ($item['price'] ?? 0),
+                    'subtotal'    => (float) ($item['price'] ?? 0) * (int) ($item['quantity'] ?? 1),
                 ];
-
                 // Trừ stock nếu là UUID sản phẩm
                 if ($isUuid) {
                     try {
                         $prodRes = Http::withoutVerifying()
                             ->withHeaders($this->supabaseHeaders(true))
-                            ->get("{$this->baseUrl()}/rest/v1/products?id=eq.{$prodId}&select=stock&limit=1");
+                            ->get("{$this->baseUrl()}/rest/v1/products?id=eq.{$prodId}&select=stock_quantity&limit=1");
 
                         if ($prodRes->successful() && !empty($prodRes->json())) {
-                            $currentStock = (int) ($prodRes->json()[0]['stock'] ?? 0);
+                            $currentStock = (int) ($prodRes->json()[0]['stock_quantity'] ?? 0);
                             $newStock = max(0, $currentStock - (int) ($item['quantity'] ?? 1));
 
                             Http::withoutVerifying()
                                 ->withHeaders($this->supabaseHeaders(true))
                                 ->patch("{$this->baseUrl()}/rest/v1/products?id=eq.{$prodId}", [
-                                    'stock' => $newStock,
+                                    'stock_quantity' => $newStock,
                                 ]);
                         }
                     } catch (\Exception $e) {
@@ -252,7 +252,6 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             Log::warning('Activity log error: ' . $e->getMessage());
         }
-
         // Gửi email thông báo cho khách khi đơn giao hoặc hoàn tất/hủy
         if (in_array($newStatus, ['shipped', 'completed', 'cancelled']) && !empty($current['customer_email'])) {
             try {
@@ -260,12 +259,12 @@ class OrderController extends Controller
                     return [
                         'name'     => $oi['products']['name'] ?? 'Sản phẩm thảo mộc',
                         'quantity' => $oi['quantity'] ?? 1,
-                        'price'    => $oi['price'] ?? 0,
+                        'price'    => $oi['unit_price'] ?? $oi['price'] ?? 0,
                     ];
                 }, $current['order_items'] ?? []);
 
                 Mail::to($current['customer_email'])->send(new OrderPlaced([
-                    'order_code'       => 'EVA' . substr($id, 0, 6),
+                    'order_code'       => $current['order_code'] ?? ('EVA' . substr($id, 0, 6)),
                     'customer_name'    => $current['customer_name'],
                     'customer_phone'   => $current['customer_phone'],
                     'customer_email'   => $current['customer_email'],

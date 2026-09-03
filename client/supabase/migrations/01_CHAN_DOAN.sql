@@ -1,22 +1,17 @@
--- Chẩn đoán nhanh: dán cả file vào SQL Editor → Run.
--- Xem cột ket_qua: dòng nào FAIL chính là chỗ script cũ chết.
-select 'popup_configs' as doi_tuong,
-       case when to_regclass('public.popup_configs') is not null then 'OK' else 'FAIL-chua-ton-tai' end as ket_qua
-union all
-select 'blog_posts',
-       case when to_regclass('public.blog_posts') is not null then 'OK' else 'FAIL-chua-ton-tai' end
-union all
-select 'cart_items',
-       case when to_regclass('public.cart_items') is not null then 'OK' else 'FAIL-chua-ton-tai' end
-union all
-select 'order_items',
-       case when to_regclass('public.order_items') is not null then 'OK' else 'FAIL-chua-ton-tai' end
-union all
-select 'products.category',
-       case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='products' and column_name='category') then 'OK' else 'FAIL-thieu-cot' end
-union all
-select 'cart_items.product_name',
-       case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='cart_items' and column_name='product_name') then 'OK' else 'FAIL-thieu-cot' end
-union all
-select 'blog_posts.author',
-       case when exists (select 1 from information_schema.columns where table_schema='public' and table_name='blog_posts' and column_name='author') then 'OK' else 'FAIL-thieu-cot' end;
+-- ============================================================
+-- EVA SPA — 01_CHAN_DOAN.sql (CHỈ ĐỌC — KHÔNG sửa gì)
+-- Supabase → SQL Editor → New → dán HẾT → Run → COPY bảng kết quả → dán vào chat.
+-- Mỗi dòng cho biết PROJECT nào đang mở + thiếu gì.
+-- ============================================================
+SELECT '01_project'  AS k, current_database() AS v
+UNION ALL SELECT '02_popup_configs_co_bang', (to_regclass('public.popup_configs') IS NOT NULL)::text
+UNION ALL SELECT '03_blog_posts_author',
+  (SELECT count(*) FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='blog_posts' AND column_name='author')::text
+UNION ALL SELECT '04_products_category',
+  (SELECT count(*) FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='products' AND column_name='category')::text
+UNION ALL SELECT '05_cart_product_name',
+  (SELECT count(*) FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='cart_items' AND column_name='product_name')::text
+UNION ALL SELECT '06_products_dong', (SELECT count(*) FROM public.products)::text;

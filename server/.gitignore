@@ -36,3 +36,6 @@ env-list.php
 chan-doan.php
 make-seed-json.php
 .auth.json
+sql-endpoints-probe.php
+mo-ta-bang.php
+test-ghi.php
