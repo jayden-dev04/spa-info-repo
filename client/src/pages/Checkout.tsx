@@ -384,7 +384,7 @@ export default function Checkout() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="address" className="text-xs font-semibold text-foreground/90">
-                    Địa chỉ chi tiết (Số nhà, tên đường, phường/xã) *
+                    Địa chỉ chi tiết (Số nhà, tên đường) *
                   </Label>
                   <Input
                     id="address"
