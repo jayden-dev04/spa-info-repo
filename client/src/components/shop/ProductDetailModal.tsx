@@ -83,7 +83,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
 
       <div className="flex min-h-full items-center justify-center p-4">
         <div 
-          className="relative w-full max-w-2xl bg-card border border-border rounded-3xl shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-200"
+          className="relative w-full max-w-4xl bg-card border border-border rounded-3xl shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
@@ -97,12 +97,13 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
           <div className="grid grid-cols-1 md:grid-cols-2">
             
             {/* Product Image */}
-            <div className="relative bg-secondary/40 h-64 md:h-full min-h-[300px] flex items-center justify-center overflow-hidden">
+            <div className="relative bg-secondary/40 h-72 md:h-full min-h-[420px] flex items-center justify-center overflow-hidden">
               <img
                 src={imageUrl}
                 alt={product.name}
                 data-stage="unsplash"
                 onError={handleImgError}
+                className="w-full h-full object-cover"
               />
               {product.tag && (
                 <span className="absolute top-4 left-4 bg-primary/90 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
@@ -116,12 +117,12 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
             <div className="p-6 md:p-8 flex flex-col justify-between space-y-5">
               
               <div className="space-y-3 text-left">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pr-10 flex-wrap">
                   <Badge variant="outline" className="bg-secondary text-primary border-primary/20 text-xs">
                     {product.category || 'Mỹ phẩm thảo mộc'}
                   </Badge>
                   {product.organic && (
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs gap-1">
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs gap-1 whitespace-nowrap">
                       <Leaf className="w-3 h-3 text-emerald-600" />
                       <span>100% Thuần Chay</span>
                     </Badge>

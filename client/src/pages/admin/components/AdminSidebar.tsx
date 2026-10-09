@@ -11,7 +11,9 @@ import {
   ExternalLink, 
   ShieldCheck,
   BookOpen,
-  Megaphone
+  Megaphone,
+  HelpCircle,
+  MessagesSquare
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -71,6 +73,16 @@ export default function AdminSidebar({
       id: 'staff',
       label: 'Kỹ thuật viên & Phòng',
       icon: Users2,
+    },
+    {
+      id: 'qna',
+      label: 'Hỏi & Đáp khách',
+      icon: HelpCircle,
+    },
+    {
+      id: 'chat',
+      label: 'Chat trực tuyến',
+      icon: MessagesSquare,
     },
   ]
 

@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
             'dev/tool/key',
         ]);
+
+        // Alias middleware tùy chỉnh (Laravel 12 style)
+        $middleware->alias([
+            'admin.token' => \App\Http\Middleware\EnsureAdminToken::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

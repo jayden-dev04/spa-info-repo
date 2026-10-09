@@ -13,6 +13,8 @@ import BlogTab from './components/BlogTab'
 import PopupTab from './components/PopupTab'
 import ServicesTab from './components/ServicesTab'
 import StaffTab from './components/StaffTab'
+import QnaAdminTab from './components/QnaAdminTab'
+import ChatAdminTab from './components/ChatAdminTab'
 
 export default function AdminDashboard() {
   const [currentTab, setCurrentTab] = useState('overview')
@@ -226,6 +228,10 @@ export default function AdminDashboard() {
           {currentTab === 'services' && <ServicesTab />}
 
           {currentTab === 'staff' && <StaffTab />}
+
+          {currentTab === 'qna' && <QnaAdminTab />}
+
+          {currentTab === 'chat' && <ChatAdminTab />}
         </main>
       </div>
     </div>

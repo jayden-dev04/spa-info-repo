@@ -3,7 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GeoController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\RssController;
 use App\Http\Controllers\ServiceController;
 
 Route::get('/', function () {
@@ -19,6 +21,7 @@ Route::get('/', function () {
             'POST /api/orders'       => 'Tạo đơn hàng mới',
             'GET /api/orders'        => 'Lấy danh sách đơn hàng',
             'PATCH /api/orders/{id}' => 'Cập nhật trạng thái đơn hàng',
+            'GET /rss'               => 'RSS 2.0 feed blog posts (alias /api/rss)',
         ],
     ]);
 });
@@ -53,6 +56,16 @@ Route::options('/api/{any}', function () use ($corsHeaders) {
 })->where('any', '.*');
 
 // ---------------------------------------------------------------------------
+// RSS Feed API — blog posts (public, không cần auth)
+// ---------------------------------------------------------------------------
+
+// GET /rss     — RSS 2.0 XML feed của blog posts
+Route::get('/rss', [RssController::class, 'index']);
+
+// GET /api/rss — alias cho /rss
+Route::get('/api/rss', [RssController::class, 'index']);
+
+// ---------------------------------------------------------------------------
 // Appointments API
 // ---------------------------------------------------------------------------
 
@@ -60,10 +73,12 @@ Route::options('/api/{any}', function () use ($corsHeaders) {
 Route::post('/api/appointments', [AppointmentController::class, 'store']);
 
 // GET    /api/appointments      — Admin lấy danh sách lịch hẹn (?status=pending)
-Route::get('/api/appointments', [AppointmentController::class, 'index']);
+Route::get('/api/appointments', [AppointmentController::class, 'index'])
+    ->middleware('admin.token');
 
 // PATCH  /api/appointments/{id} — Admin cập nhật trạng thái lịch hẹn
-Route::patch('/api/appointments/{id}', [AppointmentController::class, 'updateStatus']);
+Route::patch('/api/appointments/{id}', [AppointmentController::class, 'updateStatus'])
+    ->middleware('admin.token');
 
 // ---------------------------------------------------------------------------
 // Orders API (E-Commerce)
@@ -73,13 +88,31 @@ Route::patch('/api/appointments/{id}', [AppointmentController::class, 'updateSta
 Route::post('/api/orders', [OrderController::class, 'store']);
 
 // GET    /api/orders            — Admin lấy danh sách đơn hàng (?status=pending)
-Route::get('/api/orders', [OrderController::class, 'index']);
+Route::get('/api/orders', [OrderController::class, 'index'])
+    ->middleware('admin.token');
 
 // PATCH  /api/orders/{id}       — Admin cập nhật trạng thái đơn hàng (shipped, completed, cancelled)
-Route::patch('/api/orders/{id}', [OrderController::class, 'updateStatus']);
+Route::patch('/api/orders/{id}', [OrderController::class, 'updateStatus'])
+    ->middleware('admin.token');
 // Services API
 // ---------------------------------------------------------------------------
+// AI Chat trợ lý ảo (status + POST messages)
+Route::get('/api/ai-chat/status', [\App\Http\Controllers\AiChatController::class, 'status']);
+Route::post('/api/ai-chat', [\App\Http\Controllers\AiChatController::class, 'chat']);
+
 Route::get('/api/services', [ServiceController::class, 'index']);
 Route::post('/api/services', [ServiceController::class, 'store']);
 Route::patch('/api/services/{id}', [ServiceController::class, 'update']);
 Route::delete('/api/services/{id}', [ServiceController::class, 'destroy']);
+
+// ---------------------------------------------------------------------------
+// Geo API — tỉnh/thành + phường/xã Việt Nam (dữ liệu provinces.open-api.vn v2,
+// lưu trong Supabase: vietnam_provinces / vietnam_wards)
+// ---------------------------------------------------------------------------
+
+// GET /api/geo/provinces — 34 tỉnh/thành
+Route::get('/api/geo/provinces', [GeoController::class, 'provinces']);
+// GET /api/geo/wards?province=79 — phường/xã theo tỉnh
+Route::get('/api/geo/wards', [GeoController::class, 'wards']);
+// GET /api/geo/sync — đồng bộ dữ liệu mới từ API nguồn vào Supabase
+Route::get('/api/geo/sync', [GeoController::class, 'sync']);

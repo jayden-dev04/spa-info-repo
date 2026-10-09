@@ -6,6 +6,8 @@ import facialImg from '@/assets/images/service_facial.jpg'
 import lipsImg from '@/assets/images/service_lips.jpg'
 import massageImg from '@/assets/images/service_massage.jpg'
 import { useActiveServices, type ServiceRow } from '@/lib/useActiveServices'
+import MediaShowcase from '@/components/MediaShowcase'
+import QnaSection from '@/components/QnaSection'
 export default function Home() {
   const fallback: ServiceRow[] = [
     { id: 1, name: 'Gội Đầu Dưỡng Sinh Thảo Dược', price: 199000, duration_minutes: 70 },
@@ -223,6 +225,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Media Showcase — Video giới thiệu + Nhạc nền dưỡng sinh */}
+      <MediaShowcase />
+
       {/* Why Choose Us */}
       <section className="py-20 bg-secondary/50 border-y border-border">
         <div className="container mx-auto px-4 max-w-6xl">
@@ -250,6 +255,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Q&A — Diễn đàn hỏi đáp (offline) */}
+      <QnaSection />
 
       {/* CTA Promo Banner */}
       <section className="py-20 bg-primary text-primary-foreground relative overflow-hidden">

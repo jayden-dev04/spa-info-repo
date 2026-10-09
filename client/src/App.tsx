@@ -20,6 +20,7 @@ import OrderDetailPage from './pages/OrderDetailPage'
 import AuthCallback from './pages/AuthCallback'
 import AdminPortalRoute from './pages/admin/AdminPortalRoute'
 import PromoPopup from './components/PromoPopup'
+import ChatWidget from '@/components/ChatWidget'
 import { getCachedPopupConfig, fetchPopupConfig } from '@/lib/siteConfig'
 import './index.css'
 
@@ -294,7 +295,8 @@ function App() {
             {/* Portal Quản Trị — chỉ role admin/staff do backend cấp */}
             <Route path="/admin" element={<AdminPortalRoute />} />
           </Routes>
-          <Toaster richColors />
+          <ChatWidget />
+          <Toaster richColors position="top-center" />
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

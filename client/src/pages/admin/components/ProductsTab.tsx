@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, Package, Edit2, Trash2, CheckCircle2, AlertTriangle, XCircle, Filter } from 'lucide-react'
+import { Plus, Search, Package, Edit2, Trash2, CheckCircle2, AlertTriangle, XCircle, Filter, Upload } from 'lucide-react'
+import { useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,53 @@ export default function ProductsTab({ products, loading, onRefresh }: ProductsTa
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Upload ảnh từ máy local -> Supabase Storage (bucket 'products', public)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // cho phép chọn lại cùng 1 file
+    if (!file) return
+
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+      toast.error('Chỉ chấp nhận ảnh JPG, PNG, WebP hoặc GIF')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ảnh quá lớn — tối đa 5MB')
+      return
+    }
+
+    setUploadingImage(true)
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      // Tên file ổn định theo product id (nếu đang sửa) hoặc timestamp (nếu thêm mới)
+      // để up đè ảnh cũ thay vì chất đống rác trong bucket.
+      const base = editingProduct
+        ? `product-${editingProduct.id}`
+        : `product-new-${Date.now()}`
+      const path = `${base}.${ext}`
+
+      const { error } = await supabase.storage
+        .from('products')
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (error) throw error
+
+      const { data } = supabase.storage.from('products').getPublicUrl(path)
+      if (!data?.publicUrl) throw new Error('Không lấy được đường dẫn ảnh')
+
+      setFormData((prev) => ({ ...prev, image_url: data.publicUrl }))
+      toast.success('Đã tải ảnh lên!')
+    } catch (err: any) {
+      console.error('Lỗi upload ảnh:', err)
+      toast.error('Tải ảnh lên thất bại', { description: err.message })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
 
   // Form State
   const [formData, setFormData] = useState({
@@ -377,12 +425,66 @@ export default function ProductsTab({ products, loading, onRefresh }: ProductsTa
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="image_url" className="font-semibold text-foreground">Link hình ảnh sản phẩm</Label>
+                <Label htmlFor="image_url" className="font-semibold text-foreground">Hình ảnh sản phẩm</Label>
+
+                {/* Xem trước ảnh hiện tại */}
+                {(formData.image_url || uploadingImage) && (
+                  <div className="relative w-full h-28 rounded-xl overflow-hidden border border-border bg-secondary/30">
+                    <img
+                      src={formData.image_url}
+                      alt="Xem trước ảnh"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                    {uploadingImage && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-[11px] font-semibold">
+                        Đang tải ảnh lên...
+                      </div>
+                    )}
+                    {formData.image_url && !uploadingImage && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, image_url: '' })}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white text-xs flex items-center justify-center cursor-pointer"
+                        title="Gỡ ảnh"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Upload từ máy local -> Supabase Storage (bucket products) */}
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    id="image_file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-xl text-xs cursor-pointer shrink-0"
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1.5" />
+                    {uploadingImage ? 'Đang tải lên...' : 'Tải ảnh từ máy'}
+                  </Button>
+                  <span className="text-[10px] text-muted-foreground">
+                    JPG/PNG/WebP — tối đa 5MB
+                  </span>
+                </div>
+
+                {/* Hoặc dán link ảnh */}
                 <Input
                   id="image_url"
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="Hoặc dán link ảnh (https://...)"
                   className="rounded-xl text-xs"
                 />
               </div>

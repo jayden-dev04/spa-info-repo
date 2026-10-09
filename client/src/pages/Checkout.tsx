@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Leaf, ArrowLeft, ShieldCheck, Truck, Banknote, QrCode, Sparkles, CheckCircle2 } from 'lucide-react'
+import { Leaf, ArrowLeft, ShieldCheck, Truck, Banknote, QrCode, Sparkles, CheckCircle2, Trash2, Minus, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { API_BASE } from '@/lib/api'
+import { useVietnamGeo, useWards } from '@/lib/useVietnamGeo'
 import {
   Dialog,
   DialogContent,
@@ -22,12 +23,12 @@ import { getCachedPopupConfig, fetchPopupConfig } from '@/lib/siteConfig'
 // VietQR thật (theo PROJECT_OVERVIEW), nên chọn ngân hàng chỉ đổi logo/
 // nhãn hiển thị; qrUrl luôn dùng tài khoản thật BANK_INFO.
 const BANK_OPTIONS = [
-  { bankId: 'VietinBank', label: 'VietinBank (Việt Nam Công Thương)', logo: 'https://cdn.vietqr.io/img/ICB.png' },
-  { bankId: 'Vietcombank', label: 'Vietcombank', logo: 'https://cdn.vietqr.io/img/VCB.png' },
-  { bankId: 'MB', label: 'MB Bank', logo: 'https://cdn.vietqr.io/img/MB.png' },
-  { bankId: 'Techcombank', label: 'Techcombank', logo: 'https://cdn.vietqr.io/img/TCB.png' },
-  { bankId: 'BIDV', label: 'BIDV', logo: 'https://cdn.vietqr.io/img/BIDV.png' },
-  { bankId: 'ACB', label: 'ACB', logo: 'https://cdn.vietqr.io/img/ACB.png' },
+  { bankId: 'VietinBank', label: 'VietinBank (Việt Nam Công Thương)', short: 'VietinBank', logo: 'https://cdn.vietqr.io/img/ICB.png' },
+  { bankId: 'Vietcombank', label: 'Vietcombank', short: 'Vietcombank', logo: 'https://cdn.vietqr.io/img/VCB.png' },
+  { bankId: 'MB', label: 'MB Bank', short: 'MB Bank', logo: 'https://cdn.vietqr.io/img/MB.png' },
+  { bankId: 'Techcombank', label: 'Techcombank', short: 'Techcombank', logo: 'https://cdn.vietqr.io/img/TCB.png' },
+  { bankId: 'BIDV', label: 'BIDV', short: 'BIDV', logo: 'https://cdn.vietqr.io/img/BIDV.png' },
+  { bankId: 'ACB', label: 'ACB', short: 'ACB', logo: 'https://cdn.vietqr.io/img/ACB.png' },
 ] as const
 
 const BANK_INFO = {
@@ -40,7 +41,7 @@ const FREESHIP_THRESHOLD = 500000
 const STANDARD_SHIPPING_FEE = 30000
 
 export default function Checkout() {
-  const { cart, totalAmount, clearCart } = useCart()
+  const { cart, totalAmount, clearCart, updateQuantity, removeFromCart } = useCart()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
@@ -51,11 +52,18 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
   const [couponError, setCouponError] = useState('')
   const [selectedBank, setSelectedBank] = useState<(typeof BANK_OPTIONS)[number]['bankId']>('VietinBank')
+  // Địa danh VN — tỉnh/thành + phường/xã load từ DB (vietnam_provinces/vietnam_wards)
+  const { provinces, provincesLoading } = useVietnamGeo()
+  const [provinceCode, setProvinceCode] = useState<number | null>(null)
+  const [wardCode, setWardCode] = useState<number | null>(null)
+  const { wards, wardsLoading } = useWards(provinceCode)
+  const selectedProvince = provinces.find((p) => p.code === provinceCode)
+  const selectedWard = wards.find((w) => w.code === wardCode)
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
     email: '',
-    city: 'TP. Cần Thơ',
+    city: '',
     district: '',
     address: '',
     notes: '',
@@ -124,8 +132,8 @@ export default function Checkout() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
-      toast.error('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ chi tiết.')
+    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim() || !provinceCode || !wardCode) {
+      toast.error('Vui lòng điền đầy đủ Họ tên, Số điện thoại, Tỉnh/Phường và Địa chỉ chi tiết.')
       return
     }
     // Với VietQR: bật hộp xác nhận quét mã TRƯỚC khi ghi đơn.
@@ -140,7 +148,7 @@ export default function Checkout() {
     setQrConfirmOpen(false)
     setLoading(true)
 
-    const fullAddress = `${formData.address}${formData.district ? ', ' + formData.district : ''}${formData.city ? ', ' + formData.city : ''}`
+    const fullAddress = `${formData.address}, ${selectedWard?.name ?? ''}, ${selectedProvince?.name ?? ''}`
 
     const payload = {
       customer_name: formData.fullName,
@@ -271,7 +279,7 @@ export default function Checkout() {
             
             {/* 1. Customer Info */}
             <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden gap-0 py-0">
-              <CardHeader className="bg-secondary/30 pb-4 border-b border-border/60">
+              <CardHeader className="bg-secondary/30 px-5 sm:px-6 py-5 border-b border-border/60">
                 <CardTitle className="text-lg font-serif font-bold text-primary flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">1</span>
                   <span>Địa Chỉ Nhận Hàng</span>
@@ -280,7 +288,7 @@ export default function Checkout() {
                   Vui lòng cung cấp chính xác để chuyên viên giao hàng tận nơi nhanh chóng.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-5 space-y-4">
+              <CardContent className="px-5 sm:px-6 pt-5 pb-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="fullName" className="text-xs font-semibold text-foreground/90">
@@ -328,30 +336,49 @@ export default function Checkout() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="city" className="text-xs font-semibold text-foreground/90">
+                    <Label htmlFor="province" className="text-xs font-semibold text-foreground/90">
                       Tỉnh / Thành phố *
                     </Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="Cần Thơ, TP.HCM, Hà Nội..."
-                      className="rounded-xl"
-                    />
+                    <select
+                      id="province"
+                      value={provinceCode ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value ? Number(e.target.value) : null
+                        setProvinceCode(v)
+                        setWardCode(null)
+                        setFormData((prev) => ({ ...prev, city: v ? (provinces.find((p) => p.code === v)?.name ?? '') : '', district: '' }))
+                      }}
+                      className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+                      disabled={provincesLoading}
+                    >
+                      <option value="">{provincesLoading ? 'Đang tải tỉnh/thành...' : '— Chọn tỉnh/thành —'}</option>
+                      {provinces.map((p) => (
+                        <option key={p.code} value={p.code}>{p.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="district" className="text-xs font-semibold text-foreground/90">
-                      Quận / Huyện
+                    <Label htmlFor="ward" className="text-xs font-semibold text-foreground/90">
+                      Phường / Xã *
                     </Label>
-                    <Input
-                      id="district"
-                      name="district"
-                      value={formData.district}
-                      onChange={handleInputChange}
-                      placeholder="Ninh Kiều, Cái Răng, Quận 1..."
-                      className="rounded-xl"
-                    />
+                    <select
+                      id="ward"
+                      value={wardCode ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value ? Number(e.target.value) : null
+                        setWardCode(v)
+                        setFormData((prev) => ({ ...prev, district: v ? (wards.find((w) => w.code === v)?.name ?? '') : '' }))
+                      }}
+                      className="flex h-9 w-full rounded-xl border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
+                      disabled={!provinceCode || wardsLoading}
+                    >
+                      <option value="">
+                        {!provinceCode ? '— Chọn tỉnh trước —' : wardsLoading ? 'Đang tải phường/xã...' : '— Chọn phường/xã —'}
+                      </option>
+                      {wards.map((w) => (
+                        <option key={w.code} value={w.code}>{w.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -388,132 +415,177 @@ export default function Checkout() {
 
             {/* 2. Payment Method */}
             <Card className="rounded-2xl border-border/80 shadow-sm overflow-hidden gap-0 py-0">
-              <CardHeader className="bg-secondary/30 pb-4 border-b border-border/60">
+              <CardHeader className="bg-secondary/30 px-5 sm:px-6 py-5 border-b border-border/60">
                 <CardTitle className="text-lg font-serif font-bold text-primary flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">2</span>
                   <span>Phương Thức Thanh Toán</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-5 space-y-4">
+              <CardContent className="px-5 sm:px-6 pt-5 pb-6 space-y-3">
                 
                 {/* VietQR Option */}
                 <div 
                   onClick={() => setPaymentMethod('vietqr')}
-                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${
+                  className={`rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
                     paymentMethod === 'vietqr'
-                      ? 'border-primary bg-primary/5 shadow-xs'
+                      ? 'border-primary shadow-md'
                       : 'border-border bg-card hover:border-primary/40'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    checked={paymentMethod === 'vietqr'}
-                    onChange={() => setPaymentMethod('vietqr')}
-                    className="mt-1 text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <QrCode className="w-4 h-4 text-accent" />
-                      <span className="font-serif font-bold text-foreground text-sm sm:text-base">
-                        Chuyển Khoản Ngân Hàng Tự Động (VietQR)
-                      </span>
-                      <span className="bg-accent/20 text-accent text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        Khuyên Dùng
-                      </span>
+                  {/* Header lựa chọn */}
+                  <div className={`flex items-start gap-3 p-4 sm:p-5 ${paymentMethod === 'vietqr' ? 'bg-primary/5' : ''}`}>
+                    <span
+                      aria-hidden
+                      className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                        paymentMethod === 'vietqr' ? 'border-primary' : 'border-border'
+                      }`}
+                    >
+                      {paymentMethod === 'vietqr' && <span className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                    </span>
+                    <QrCode className="w-5 h-5 text-accent shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-serif font-bold text-foreground text-sm sm:text-base leading-snug">
+                          Chuyển Khoản Ngân Hàng Tự Động (VietQR)
+                        </span>
+                        <span className="bg-accent/15 text-accent text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap uppercase tracking-wide">
+                          Khuyên Dùng
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                        Quét mã QR qua mọi ứng dụng ngân hàng. Tiền vào tài khoản tức thì, xác nhận đơn tự động.
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Quét mã QR qua mọi ứng dụng ngân hàng (VietinBank, Vietcombank, MB, Techcombank, MoMo,...). Tiền vào tài khoản tức thì, xác nhận đơn tự động.
-                    </p>
+                  </div>
 
-                    {/* VietQR Box Details */}
-                    {paymentMethod === 'vietqr' && (
-                      <div className="mt-4 p-4 rounded-xl bg-background border border-border space-y-3 animate-in fade-in">
-                        <div className="flex flex-col sm:flex-row items-center gap-4">
-                          <div className="w-36 h-36 bg-white p-2 rounded-xl shadow-xs border border-border/80 shrink-0 flex items-center justify-center">
+                  {/* Chi tiết chuyển khoản */}
+                  {paymentMethod === 'vietqr' && (
+                    <div className="border-t border-border/60 p-4 sm:p-5 bg-background animate-in fade-in">
+                      <div className="flex flex-col md:flex-row gap-5">
+
+                        {/* QR + logo ngân hàng đang chọn */}
+                        <div className="shrink-0 flex flex-col items-center gap-2.5 mx-auto md:mx-0">
+                          <div className="w-44 h-44 bg-white p-2.5 rounded-xl border-2 border-primary/25 shadow-sm flex items-center justify-center">
                             <img
                               src={qrUrl}
-                              alt="VietQR VietinBank"
+                              alt="Mã VietQR"
                               className="w-full h-full object-contain"
                             />
                           </div>
-                          <div className="text-xs space-y-1.5 text-muted-foreground w-full">
-                            <div className="pb-0.5">
-                              <span className="text-[11px] font-medium">Chọn ngân hàng (logo):</span>
-                              <div className="flex flex-wrap gap-1.5 mt-1">
-                                {BANK_OPTIONS.map((b) => (
-                                  <button
-                                    key={b.bankId}
-                                    type="button"
-                                    onClick={() => setSelectedBank(b.bankId)}
-                                    aria-label={b.label}
-                                    title={b.label}
-                                    className={`w-9 h-9 rounded-lg border-2 bg-white p-0.5 flex items-center justify-center transition-all ${
-                                      selectedBank === b.bankId
-                                        ? 'border-primary ring-2 ring-primary/30'
-                                        : 'border-border/70 hover:border-primary/50 opacity-70 hover:opacity-100'
-                                    }`}
-                                  >
-                                    <img src={b.logo} alt={b.label} className="max-w-full max-h-full object-contain" loading="lazy" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="flex justify-between border-b border-border/50 pb-1">
-                              <span>Ngân hàng:</span>
-                              <strong className="text-foreground flex items-center gap-1.5">
-                                <img src={BANK_OPTIONS.find(b=>b.bankId===selectedBank)?.logo} alt="" className="w-4 h-4 object-contain" />
-                                {BANK_OPTIONS.find(b=>b.bankId===selectedBank)?.label}
-                              </strong>
-                            </div>
-                            <div className="flex justify-between border-b border-border/50 pb-1">
-                              <span>Số tài khoản:</span>
-                              <strong className="text-primary font-mono text-sm">{BANK_INFO.accountNo}</strong>
-                            </div>
-                            <div className="flex justify-between border-b border-border/50 pb-1">
-                              <span>Chủ tài khoản:</span>
-                              <strong className="text-foreground uppercase">{BANK_INFO.accountName}</strong>
-                            </div>
-                            <div className="flex justify-between pt-1">
-                              <span>Số tiền:</span>
-                              <strong className="text-accent font-bold text-sm">{finalTotal.toLocaleString('vi-VN')}đ</strong>
-                            </div>
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
+                            <img
+                              src={BANK_OPTIONS.find(b => b.bankId === selectedBank)?.logo}
+                              alt=""
+                              className="w-4 h-4 object-contain"
+                            />
+                            {BANK_OPTIONS.find(b => b.bankId === selectedBank)?.short}
                           </div>
                         </div>
-                        <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-                          ℹ️ Bạn có thể quét mã QR ngay bây giờ hoặc sau khi bấm Xác nhận Đặt hàng.
-                        </p>
+
+                        {/* Thông tin ngân hàng */}
+                        <div className="flex-1 min-w-0 space-y-4">
+                          
+                          {/* Chọn ngân hàng — grid logo lớn */}
+                          <div>
+                            <p className="text-xs font-semibold text-foreground/90 mb-2">Chọn ngân hàng của bạn:</p>
+                            <div className="grid grid-cols-3 gap-2.5">
+                              {BANK_OPTIONS.map((b) => (
+                                <button
+                                  key={b.bankId}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedBank(b.bankId) }}
+                                  aria-pressed={selectedBank === b.bankId}
+                                  className={`rounded-xl border-2 bg-white py-2.5 px-2 flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                                    selectedBank === b.bankId
+                                      ? 'border-primary shadow-sm bg-primary/5'
+                                      : 'border-border hover:border-primary/50 hover:shadow-xs'
+                                  }`}
+                                >
+                                  <span className="w-12 h-9 flex items-center justify-center">
+                                    <img src={b.logo} alt="" className="max-w-full max-h-full object-contain" loading="lazy" />
+                                  </span>
+                                  <span className={`text-[10px] font-semibold leading-tight text-center truncate w-full ${selectedBank === b.bankId ? 'text-primary' : 'text-muted-foreground'}`}>
+                                    {b.short}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Bảng thông tin tài khoản */}
+                          <div className="rounded-xl border border-border bg-secondary/30 divide-y divide-border/50 overflow-hidden">
+                            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                              <span className="text-xs text-muted-foreground">Ngân hàng</span>
+                              <strong className="text-xs text-foreground flex items-center gap-1.5">
+                                <img src={BANK_OPTIONS.find(b => b.bankId === selectedBank)?.logo} alt="" className="w-4 h-4 object-contain" />
+                                {BANK_OPTIONS.find(b => b.bankId === selectedBank)?.short}
+                              </strong>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                              <span className="text-xs text-muted-foreground">Số tài khoản</span>
+                              <strong className="flex items-center gap-1.5">
+                                <span className="text-sm font-mono font-bold text-primary tracking-wide">{BANK_INFO.accountNo}</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigator.clipboard?.writeText(BANK_INFO.accountNo)
+                                    toast.success('Đã copy số tài khoản!')
+                                  }}
+                                  title="Copy số tài khoản"
+                                  className="text-[10px] font-bold text-accent border border-accent/40 bg-accent/10 hover:bg-accent/20 rounded-md px-2 py-0.5 transition-colors cursor-pointer"
+                                >
+                                  Copy
+                                </button>
+                              </strong>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                              <span className="text-xs text-muted-foreground">Chủ tài khoản</span>
+                              <strong className="text-xs font-bold text-foreground uppercase tracking-wide">{BANK_INFO.accountName}</strong>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-accent/5">
+                              <span className="text-xs font-semibold text-foreground/80">Số tiền cần chuyển</span>
+                              <strong className="text-sm font-bold text-accent">{finalTotal.toLocaleString('vi-VN')}đ</strong>
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            Vui lòng chuyển đúng số tiền và nội dung <strong className="font-mono">#{orderCode}</strong> để hệ thống đối soát tự động.
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* COD Option */}
                 <div 
                   onClick={() => setPaymentMethod('cod')}
-                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 ${
+                  className={`rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
                     paymentMethod === 'cod'
-                      ? 'border-primary bg-primary/5 shadow-xs'
+                      ? 'border-primary shadow-md'
                       : 'border-border bg-card hover:border-primary/40'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    checked={paymentMethod === 'cod'}
-                    onChange={() => setPaymentMethod('cod')}
-                    className="mt-1 text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Banknote className="w-4 h-4 text-primary" />
-                      <span className="font-serif font-bold text-foreground text-sm sm:text-base">
+                  <div className={`flex items-start gap-3 p-4 sm:p-5 ${paymentMethod === 'cod' ? 'bg-primary/5' : ''}`}>
+                    <span
+                      aria-hidden
+                      className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                        paymentMethod === 'cod' ? 'border-primary' : 'border-border'
+                      }`}
+                    >
+                      {paymentMethod === 'cod' && <span className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                    </span>
+                    <Banknote className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-serif font-bold text-foreground text-sm sm:text-base leading-snug">
                         Thanh Toán Tiền Mặt Khi Nhận Hàng (COD)
                       </span>
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                        Bạn thanh toán bằng tiền mặt cho shipper khi nhận và kiểm tra kiện hàng tại nhà.
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Bạn thanh toán bằng tiền mặt cho shipper khi nhận và kiểm tra kiện hàng tại nhà.
-                    </p>
                   </div>
                 </div>
 
@@ -525,7 +597,7 @@ export default function Checkout() {
           {/* RIGHT COLUMN: Order Summary & Submit (5 cols) */}
           <div className="lg:col-span-5 space-y-6">
             <Card className="rounded-2xl border-border/80 shadow-md sticky top-24 overflow-hidden gap-0 py-0">
-              <CardHeader className="bg-secondary/40 pb-4 border-b border-border/60">
+              <CardHeader className="bg-secondary/40 px-5 sm:px-6 py-5 border-b border-border/60">
                 <CardTitle className="text-lg font-serif font-bold text-primary flex items-center justify-between">
                   <span>Tóm Tắt Đơn Hàng</span>
                   <span className="text-xs font-sans font-semibold text-muted-foreground">
@@ -534,23 +606,54 @@ export default function Checkout() {
                 </CardTitle>
               </CardHeader>
 
-              <CardContent className="pt-4 space-y-4">
-                {/* Items List */}
-                <div className="max-h-72 overflow-y-auto space-y-3 pr-1 divide-y divide-border/40">
+              <CardContent className="px-5 sm:px-6 pt-4 pb-6 space-y-4">
+                {/* Items List — có +/- số lượng và nút xoá */}
+                <div className="max-h-80 overflow-y-auto pr-1 divide-y divide-border/40">
                   {cart.map((item) => (
-                    <div key={item.id} className="pt-3 first:pt-0 flex items-center gap-3">
+                    <div key={item.id} className="py-3 first:pt-0 last:pb-0 flex items-start gap-3">
                       <img
                         src={item.imageUrl}
                         alt={item.name}
                         className="w-14 h-14 rounded-xl object-cover bg-secondary shrink-0 border border-border"
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-xs text-foreground line-clamp-2 leading-snug">
-                          {item.name}
-                        </h4>
-                        <div className="flex justify-between items-center mt-1 text-xs">
-                          <span className="text-muted-foreground">SL: {item.quantity}</span>
-                          <span className="font-bold text-accent">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-medium text-xs text-foreground line-clamp-2 leading-snug">
+                            {item.name}
+                          </h4>
+                          <button
+                            type="button"
+                            title="Xoá khỏi giỏ"
+                            onClick={() => { removeFromCart(item.id); toast.info(`Đã xoá "${item.name}" khỏi đơn`) }}
+                            className="shrink-0 text-muted-foreground/60 hover:text-destructive transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between mt-1.5">
+                          {/* Bộ chỉnh số lượng */}
+                          <div className="inline-flex items-center border border-border rounded-lg overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                              title="Giảm số lượng"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-8 text-center text-xs font-bold text-foreground select-none">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                              title="Tăng số lượng"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <span className="font-bold text-accent text-xs">
                             {(item.price * item.quantity).toLocaleString('vi-VN')}đ
                           </span>
                         </div>
